@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   poster_forge:
-    build: .
+    image: scalawaggy/poster_forge:latest
     container_name: poster_forge
     ports:
       - "8000:8000"

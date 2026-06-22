@@ -53,7 +53,7 @@ version: '3.8'
 
 services:
   poster_forge:
-    image: yourdockerhubname/poster_forge:latest # Update this!
+    image: scalawaggy/poster_forge:latest
     container_name: poster_forge
     ports:
       - "8000:8000"
