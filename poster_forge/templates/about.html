@@ -118,23 +118,24 @@
 
                 <h4>1. Plex Configuration</h4>
                 <ul>
-                    <li>You MUST create a Movie Library called <strong>Coming Soon</strong> (ordered by release date).</li>
-                    <li>Then, add items in that library to a <strong>Smart Collection</strong> with criteria such as: <em>Movie released since 1900</em>.</li>
-                    <li>The app will automatically create the <strong>Returning soon</strong> collection for TV shows. However, you must manually change its <strong>collection order to custom</strong> so the app can reorder the items dynamically.</li>
+                    <li>You MUST create a dedicated Movie Library in Plex and name it exactly <strong>Coming Soon</strong>. You must also point it to a valid, writable folder on your hard drive.</li>
+                    <li>The app will automatically drop downloaded trailers into this folder and group them into a <strong>Coming Soon</strong> collection. You must manually change its <strong>collection order to custom</strong> so the app can reorder the items dynamically.</li>
+                    <li>The app will also automatically create a <strong>Returning Soon</strong> collection for TV shows that already exist on your server but are going into a new season. You must manually change its <strong>collection order to custom</strong> as well.</li>
+                    <li><strong>Plex Home Screen Visibility:</strong> Plex does not automatically pin collections to your global home screen. To see the "Coming Soon" or "Returning Soon" hubs when you open Plex, navigate to the collection inside your library, edit it, go to the <strong>Advanced</strong> tab, and change the <strong>Visible on</strong> setting to <strong>Library/Home/Friend's Home</strong>.</li>
                     <li>Ensure your Poster Forge Docker container has mounted your exact Plex Media directories as defined in Settings.</li>
                 </ul>
 
                 <h4>2. Radarr & Sonarr (The *arrs)</h4>
                 <ul>
                     <li>Poster Forge connects directly to their APIs to identify upcoming releases.</li>
-                    <li>In the Poster Forge Settings, input the API Keys for both Radarr and Sonarr.</li>
+                    <li>Because new movies and unreleased TV shows do not exist on your hard drive yet, Plex cannot normally display them. Poster Forge bypasses this by physically downloading the latest high-quality trailer for the upcoming item and injecting it into Plex as a "fake" movie!</li>
                     <li>The system will track movies that have a status of <code>announced</code> or <code>inCinemas</code>, and shows with upcoming episode air dates.</li>
                 </ul>
 
-                <h4>3. Tautulli (Real-Time Triggers)</h4>
+                <h4>3. Tautulli (The Handoff)</h4>
                 <ul>
-                    <li>Tautulli is used to catch when a movie or show is finally downloaded and added to Plex.</li>
-                    <li>When triggered, Poster Forge's <strong>Maintenance Job</strong> acts as an assassin, purging the temporary trailer and removing the "Coming Soon" banners.</li>
+                    <li>The instant an item finally hits your library and is processed by Plex, Tautulli fires a webhook to Poster Forge.</li>
+                    <li>Poster Forge will immediately act as an assassin, removing the "Coming Soon" or "Returning Soon" banners, applying a clean poster, and—if it was a movie—automatically deleting the fake trailer from your hard drive!</li>
                     <li><strong>Webhook Setup:</strong>
                         <ol>
                             <li>In Tautulli, go to <strong>Settings > Notification Agents > Add a Webhook</strong>.</li>
