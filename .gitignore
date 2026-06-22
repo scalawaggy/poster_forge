@@ -1,0 +1,29 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Poster Forge Specific Ignore Rules
+# Never commit the local user settings or API keys!
+poster_forge/data/
+forge_data/
+
+# Never commit local logs
+poster_forge/logs/
+forge_logs/
+
+# Ignore personal Docker overrides if the user keeps docker-compose.yml as their personal one
+docker-compose.yml
+# but we WILL ignore any local python environments
+venv/
+env/
+.venv/

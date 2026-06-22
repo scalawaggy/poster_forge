@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Settings | Poster Forge</title>
+    <link rel="icon" href="/static/thor_logo.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* Specific Poster Forge Layout Overrides */
+        :root {
+            --thumb-size: 160px;
+            --success-green: var(--success);
+            --danger-red: var(--error);
+            --accent-primary: var(--accent);
+            --border-color: var(--border);
+            --text-main: var(--text-primary);
+        }
+        
+        /* Sidebar layout additions */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-w);
+            transition: margin-left var(--transition-slow);
+            padding: 40px;
+            min-height: 100vh;
+        }
+        body.sidebar-collapsed .main-content {
+            margin-left: var(--sidebar-w-collapsed);
+        }
+        body.sidebar-collapsed .sidebar {
+            width: var(--sidebar-w-collapsed);
+        }
+        body.sidebar-collapsed .sidebar-logo-text, 
+        body.sidebar-collapsed .nav-text, 
+        body.sidebar-collapsed .sidebar-nav-label {
+            display: none;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-3);
+            padding: var(--sp-2) var(--sp-3);
+            border-radius: var(--radius);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: background-color var(--transition), color var(--transition);
+            margin-bottom: 2px;
+        }
+        .nav-item:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        .nav-item.active {
+            background-color: var(--accent-dim);
+            color: var(--accent);
+            font-weight: var(--fw-medium);
+        }
+        .nav-icon {
+            font-size: 1.25rem;
+            width: 24px;
+            text-align: center;
+        }
+        
+        /* Map old classes to new design system */
+        .card { background-color: var(--bg-surface); padding: 25px; border-radius: var(--radius-lg); margin-bottom: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+        h2 { margin-top: 0; color: var(--text-primary); font-weight: 600; letter-spacing: 0.5px; }
+        .search-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        select, input[type="text"], input[type="password"] { padding: 12px 15px; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-main); border-radius: var(--radius); outline: none; transition: border-color 0.2s; box-sizing: border-box; }
+        select:focus, input[type="text"]:focus, input[type="password"]:focus { border-color: var(--accent); }
+        .search-bar input[type="text"] { flex-grow: 1; min-width: 250px; width: auto; }
+        
+        button { font-family: var(--font); color: #fff; padding: 10px 20px; border: none; border-radius: var(--radius); cursor: pointer; font-weight: 600; transition: all 0.2s ease; letter-spacing: 0.5px; }
+        button:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.1); box-shadow: var(--shadow-sm); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-copper { background-color: var(--accent); color: #fff; }
+        .btn-steel { background-color: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-slate { background-color: var(--bg-hover); border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-forge { background-color: var(--bg-active); border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-danger { background-color: var(--error); }
+        
+        .options-bar { background: var(--bg-elevated); padding: 15px 20px; border-radius: var(--radius); display: flex; gap: 25px; align-items: center; flex-wrap: wrap; border: 1px solid var(--border); justify-content: space-between; }
+        .slider-container { display: flex; align-items: center; gap: 12px; background: var(--bg-surface); padding: 8px 18px; border-radius: var(--radius); border: 1px solid var(--border); }
+        .slider-container span { font-size: 0.85em; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        #console { background: var(--bg-base); padding: 20px; font-family: monospace; border-radius: var(--radius); color: var(--text-muted); height: 250px; overflow-y: auto; white-space: pre-wrap; border: 1px solid var(--border); font-size: 0.9em; line-height: 1.5; }
+        #console .highlight { color: var(--accent); }
+        
+        .grid { display: grid; gap: 20px; margin-top: 25px; transition: opacity 0.3s; }
+        body.mode-poster .grid { grid-template-columns: repeat(auto-fill, minmax(var(--thumb-size), 1fr)); }
+        body.mode-backdrop .grid { grid-template-columns: repeat(auto-fill, minmax(calc(var(--thumb-size) * 1.6), 1fr)); }
+        
+        .poster-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; max-height: 60vh; overflow-y: auto; padding-right: 10px; }
+
+        .result-card { background: var(--bg-elevated); padding: 12px; border-radius: var(--radius-md); text-align: center; border: 1px solid var(--border); display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s; }
+        .result-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--border-focus); }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        .result-card img { width: 100%; border-radius: var(--radius-sm); object-fit: cover; background: var(--bg-base); margin-bottom: 12px; transition: opacity 0.3s ease-in-out; animation: fadeIn 1.2s ease-in-out; }
+        
+        .img-vertical { aspect-ratio: 2/3; }
+        .img-widescreen { aspect-ratio: 16/9; }
+        .result-title { font-size: 0.95em; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; color: var(--text-main); }
+        
+        .btn-group-poster, .btn-group-backdrop { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+        body.mode-poster .btn-group-backdrop { display: none !important; }
+        body.mode-backdrop .btn-group-poster { display: none !important; }
+
+        .apply-btn { width: 100%; font-size: 0.75em; padding: 8px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; border-radius: 4px; }
+        .inline-seasons-wrapper { grid-column: 1 / -1; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 25px; display: none; margin-bottom: 10px; position: relative; box-shadow: inset 0 4px 20px rgba(0,0,0,0.5); }
+        .inline-seasons-wrapper h3 { margin-top: 0; color: var(--text-primary); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .close-inline-btn { position: absolute; top: 20px; right: 25px; background: transparent; color: var(--text-muted); font-size: 1.8em; padding: 0; line-height: 1; }
+        .pagination-container { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; }
+        .pagination-controls { display: flex; gap: 20px; align-items: center; }
+        .pagination-controls button { padding: 10px 20px; }
+        .results-badge { background: var(--bg-active); border: 1px solid var(--border); padding: 8px 18px; border-radius: var(--radius-full); font-size: 0.9em; font-weight: 600; color: var(--accent); letter-spacing: 1px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 17, 23, 0.85); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
+        .modal-content { background: var(--bg-surface); padding: 25px; border-radius: var(--radius-lg); max-width: 900px; width: 90%; border: 1px solid var(--border); max-height: 90vh; box-shadow: var(--shadow-lg); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
+        .modal-header h3 { margin: 0; color: var(--text-primary); }
+        .close-btn { cursor: pointer; font-size: 1.8em; color: var(--text-muted); border: none; background: none; padding: 0; margin: 0; line-height: 1; }
+        .poster-option { position: relative; cursor: pointer; border: 2px solid transparent; border-radius: var(--radius); transition: 0.2s; overflow: hidden;}
+        .poster-option:hover { border-color: var(--accent); transform: scale(1.03); box-shadow: 0 4px 15px var(--accent-dim); }
+        .poster-option img { width: 100%; display: block; object-fit: cover;}
+        
+        .preview-img { width: 100%; max-width: 400px; border-radius: var(--radius); box-shadow: var(--shadow-lg); margin: 0 auto 20px auto; display: block;}
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-base); }
+        ::-webkit-scrollbar-thumb { background: var(--bg-active); border-radius: 4px; }
+        .checkbox-group label { display: flex; align-items: center; margin-bottom: 10px; gap: 10px; }
+    </style>
+</head>
+<body>
+    <div class="layout">
+    <aside class="sidebar" id="sidebar">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px;">
+            <a href="/" style="display: flex; align-items: center; text-decoration: none; gap: 10px;">
+                <img class="sidebar-logo-icon" src="/static/thor_logo.png" style="width: 28px; height: 28px; object-fit: contain;">
+                <div class="sidebar-logo-text" style="color: var(--text-main); font-size: 1.2rem; font-weight: bold;">Poster <span style="color: var(--accent);">Forge</span></div>
+            </a>
+            <button onclick="document.body.classList.toggle('sidebar-collapsed')" style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; padding: 0;">☰</button>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-label">Main</div>
+            <a href="/" class="nav-item">
+                <span class="nav-icon">⌂</span>
+                <span class="nav-text">Dashboard</span>
+            </a>
+            <a href="/settings" class="nav-item active">
+                <span class="nav-icon">⚙</span>
+                <span class="nav-text">Settings</span>
+            </a>
+            <a href="/about" class="nav-item">
+                <span class="nav-icon">ℹ</span>
+                <span class="nav-text">About</span>
+            </a>
+            <a href="/logout" class="nav-item">
+                <span class="nav-icon">⎋</span>
+                <span class="nav-text">Sign Out</span>
+            </a>
+        </nav>
+    </aside>
+    <main class="main-content">
+<div class="container">
+
+            <h2 style="margin-bottom: 20px;">System Settings</h2>
+            
+            <div class="card">
+                <h3 style="margin-top: 0;">Connections & External APIs</h3>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>TMDB API Key</label>
+                        <div style="display:flex; gap:10px;"><input type="password" id="cfg-tmdb" placeholder="Enter TMDB Key..."><button type="button" class="btn-slate" onclick="testConnection('tmdb', this)">Test</button></div>
+                    </div>
+                    <div class="form-group">
+                        <label>TVDB API Key</label>
+                        <div style="display:flex; gap:10px;"><input type="password" id="cfg-tvdb" placeholder="Enter TVDB Key..."><button type="button" class="btn-slate" onclick="testConnection('tvdb', this)">Test</button></div>
+                    </div>
+                    
+                    <div class="form-group"><label>Plex Server URL</label><input type="text" id="cfg-plex-url" placeholder="http://192.168.1.100:32400"></div>
+                    <div class="form-group">
+                        <label>Plex Token</label>
+                        <div style="display:flex; gap:10px;"><input type="password" id="cfg-plex-token" placeholder="Enter Plex Token..."><button type="button" class="btn-slate" onclick="testConnection('plex', this)">Test</button></div>
+                    </div>
+                    
+                    <div class="form-group"><label>Radarr Local URL</label><input type="text" id="cfg-radarr-url" placeholder="http://192.168.1.100:7878"></div>
+                    <div class="form-group">
+                        <label>Radarr API Key</label>
+                        <div style="display:flex; gap:10px;"><input type="password" id="cfg-radarr-key" placeholder="Enter Radarr Key..."><button type="button" class="btn-slate" onclick="testConnection('radarr', this)">Test</button></div>
+                    </div>
+                    
+                    <div class="form-group"><label>Sonarr Local URL</label><input type="text" id="cfg-sonarr-url" placeholder="http://192.168.1.100:8989"></div>
+                    <div class="form-group">
+                        <label>Sonarr API Key</label>
+                        <div style="display:flex; gap:10px;"><input type="password" id="cfg-sonarr-key" placeholder="Enter Sonarr Key..."><button type="button" class="btn-slate" onclick="testConnection('sonarr', this)">Test</button></div>
+                    </div>
+                </div>
+                
+                <h4 style="margin-top: 20px;">Path Mappings</h4>
+                <div class="form-grid">
+                    <div class="form-group"><label>Plex Base Path Mapping</label><input type="text" id="cfg-plex-path" placeholder="/volume1/media/"></div>
+                    <div class="form-group"><label>Docker Base Path Mapping</label><input type="text" id="cfg-docker-path" placeholder="/data/"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-top: 0;">Automation & Webhook Behaviors</h3>
+                
+                <h4>Maintenance Schedule</h4>
+                <div style="display: flex; gap: 20px; align-items: center; background: var(--bg-elevated); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                    <div class="checkbox-group" style="margin-top: 24px; display: flex;">
+                        <label><input type="checkbox" id="cfg-enable-maintenance" checked> <span><strong>Enable Automated Runs</strong></span></label>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 5px; color: var(--text-muted);">Daily Maintenance Time</label>
+                        <input type="time" id="MAINTENANCE_TIME" value="03:00" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-base); color: var(--text-main);">
+                    </div>
+                    <div style="margin-top: 24px; display: flex; gap: 10px;">
+                        <button type="button" class="btn-copper" onclick="runManualJanitor()">Run Maintenance</button>
+                        <button type="button" class="btn-slate" onclick="viewJanitorLogs()">View Audit Logs</button>
+                    </div>
+                </div>  
+                
+                <div id="janitor-log-container" style="display: none; margin-top: 15px; background: var(--bg-base); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span style="color: var(--accent-primary); font-weight: bold; font-family: monospace;">>_ MAINTENANCE.LOG</span>
+                        <button style="background: none; border: none; color: var(--text-muted); cursor: pointer;" onclick="document.getElementById('janitor-log-container').style.display='none'">✖ Close</button>
+                    </div>
+                    <pre id="janitor-log-output" style="color: var(--success); font-family: monospace; font-size: 0.85em; white-space: pre-wrap; max-height: 300px; overflow-y: auto; margin: 0;"></pre>
+                </div>
+                
+                <h4 style="margin-top: 25px;">Security & Authentication</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Web UI Username (Optional)</label>
+                        <input type="text" id="cfg-auth-user" placeholder="Leave blank to disable Basic Auth">
+                    </div>
+                    <div class="form-group">
+                        <label>Web UI Password</label>
+                        <input type="password" id="cfg-auth-pass" placeholder="Leave blank to disable Basic Auth">
+                    </div>
+                </div>
+                <div class="checkbox-group" style="margin-top: 10px; margin-bottom: 20px;">
+                    <label><input type="checkbox" id="cfg-auth-bypass" checked> <span><strong>Bypass Local Auth:</strong> Do not require authentication for local network IPs (e.g. 192.168.x.x)</span></label>
+                </div>
+                <div class="form-group" style="max-width: 500px;">
+                    <label>Tautulli Webhook Token</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="webhookToken" placeholder="Leave blank to disable security (not recommended)">
+                        <button type="button" class="btn-slate" onclick="document.getElementById('webhookToken').value = Array.from({length: 32}, () => Math.floor(Math.random() * 16).toString(16)).join(''); saveSettings();">Generate</button>
+                    </div>
+                    <small style="color: var(--text-muted); display: block; margin-top: 5px; margin-bottom: 15px;">Tautulli must append ?token=YOUR_TOKEN to the webhook URL.</small>
+                    <button type="button" class="btn-copper" onclick="saveSettings()">Save Security Settings</button>
+                </div>
+
+                <h4 style="margin-top: 25px;">Target Libraries & Global Toggles</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Default Source (Movies)</label>
+                        <select id="cfg-default-source-movie">
+                            <option value="tmdb">TMDB</option>
+                            <option value="tvdb">TVDB</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Default Source (TV Shows)</label>
+                        <select id="cfg-default-source-show">
+                            <option value="tvdb">TVDB</option>
+                            <option value="tmdb">TMDB</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="checkbox-group" style="margin-top: 15px;">
+                    <label><input type="checkbox" id="cfg-auto-bg"> <span><strong>Two-Pass Target:</strong> Automatically apply Backgrounds alongside Posters</span></label>
+                    <label><input type="checkbox" id="cfg-save-disk"> <span><strong>Disk Backup:</strong> Save assets to local media folders (poster.jpg / background.jpg)</span></label>
+                    <label><input type="checkbox" id="cfg-debug-mode"> <span><strong>Verbose Logging:</strong> Enable Debug mode in rotating system logs</span></label>
+                    <label><input type="checkbox" id="cfg-v3-auto-add"> <span><strong>Automated Tracking Engine Auto-Pilot:</strong> Automatically download and inject new trailers without manual batch confirmation.</span></label>
+                    <label><input type="checkbox" id="cfg-add-one-day"> <span><strong>Release Date Correction:</strong> Add one day to release date (Movies Only)</span></label>
+                </div>
+                
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr 1fr; margin-top: 15px;">
+                    <div class="form-group"><label>Scan Days Out</label><input type="number" id="cfg-v3-days" value="30"></div>
+                    <div class="form-group"><label>Max Movies</label><input type="number" id="cfg-v3-movies" value="15"></div>
+                    <div class="form-group"><label>Max Shows</label><input type="number" id="cfg-v3-shows" value="15"></div>
+                    <div class="form-group"><label>Min Break Gap</label><input type="number" id="cfg-v3-gap" value="29"></div>
+                </div>
+            </div>
+
+            <div class="card" style="border: 1px solid var(--error);">
+                <h3 style="color: var(--error); margin-top: 0;">⚠️ DANGER ZONE: ImageMaid Cleanup</h3>
+                <p style="font-size: 0.9em; color: var(--text-muted); margin-top: 5px; margin-bottom: 10px;">
+                    This tool integrates the official <a href="https://kometa.wiki/en/latest/kometa/scripts/imagemaid/?h=image" target="_blank" style="color:var(--accent); text-decoration:underline; font-weight:bold;">Kometa-Team ImageMaid</a> script to physically scan and delete orphaned custom posters from your live Plex Database and Metadata folder.
+                </p>
+                <div style="background: rgba(200,0,0,0.1); border-left: 4px solid var(--error); padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                    <strong style="color: var(--error);">CRITICAL DOCKER REQUIREMENT:</strong> You MUST have your Plex Media Server configuration directory mounted as a volume in Poster Forge's <code>docker-compose.yml</code> (e.g. <code>- /path/to/Plex Media Server:/plex:rw</code>). Without this, the cleanup will fail.<br><br>
+                    <strong>DATABASE RISK:</strong> While highly vetted by the community, providing 3rd-party write-access to your live Plex SQLite Database carries an inherent risk of corruption if Plex is simultaneously running internal DB maintenance. Use entirely at your own risk. Routine backups of your Plex database are strongly recommended before running.
+                </div>
+                <button type="button" class="btn-danger" onclick="runImageMaid()">☢️ Run Kometa ImageMaid Cleanup</button>
+            </div>
+
+            <div class="card">
+                <h3 style="margin-top: 0;">Design Engine Defaults</h3>
+                <p style="font-size: 0.9em; color: var(--text-muted); margin-top: 5px; margin-bottom: 20px;">Default design settings for Automated tasks and Batch Commits.</p>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Banner Position</label>
+                        <select id="cfg-overlay-position">
+                            <option value="bottom">Bottom</option>
+                            <option value="middle">Middle</option>
+                            <option value="top">Top</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Banner Color</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="color" id="cfg-overlay-color" value="#c80000" style="padding: 2px; height: 45px;">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Banner Transparency (<span id="trans-val">220</span> / 255)</label>
+                        <input type="range" id="cfg-overlay-transparency" min="0" max="255" value="220" oninput="document.getElementById('trans-val').innerText = this.value" style="margin-top: 10px;">
+                    </div>
+                    <div class="form-group">
+                        <label>Font Scale (<span id="cfg-scale-val">100</span>%)</label>
+                        <input type="range" id="cfg-overlay-font-scale" min="50" max="150" value="100" oninput="document.getElementById('cfg-scale-val').innerText=this.value" style="width:100%;">
+                    </div>
+                    <div class="form-group">
+                        <label>Default Font</label>
+                        <select id="cfg-overlay-font"><option value="Roboto-Black.ttf">Roboto-Black.ttf</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Font Color</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="color" id="fontColor" value="#ffffff" style="padding: 2px; height: 45px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 40px; margin-bottom: 40px;">
+                <button class="btn-copper" onclick="saveSettings()">Save & Reload Configuration</button>
+                <div id="status-msg"></div>
+            </div>
+
+    <script>
+
+        async function runImageMaid() {
+            if (!confirm("WARNING: Are you absolutely sure your /plex volume is mounted, and you have backed up your Plex Database? This action will permanently delete orphaned metadata files and cannot be undone.")) return;
+            
+            document.getElementById('status-msg').innerText = "Initiating ImageMaid Cleanup... Redirecting to dashboard...";
+            try {
+                const res = await fetch('/api/imagemaid/run', { method: 'POST', body: JSON.stringify({}) });
+                const data = await res.json();
+                if (data.success) {
+                    window.location.href = "/?view_imagemaid=true";
+                } else {
+                    document.getElementById('status-msg').innerText = data.message;
+                }
+            } catch (e) {
+                document.getElementById('status-msg').innerText = "Failed to launch ImageMaid.";
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                // Fetch fonts
+                fetch('/api/v3/fonts').then(r => r.json()).then(data => {
+                    if (data.success) {
+                        const fontSelect = document.getElementById('cfg-overlay-font');
+                        fontSelect.innerHTML = '';
+                        data.fonts.forEach(f => {
+                            fontSelect.innerHTML += `<option value="${f}">${f}</option>`;
+                        });
+                        // Set value after options loaded if settings are already loaded
+                        if (appSettings.OVERLAY_FONT) fontSelect.value = appSettings.OVERLAY_FONT;
+                    }
+                });
+
+                const res = await fetch('/api/settings');
+                const data = await res.json();
+                if (data.success) {
+                    const s = data.settings;
+                    document.getElementById('cfg-tmdb').value = s.TMDB_API_KEY || "";
+                    document.getElementById('cfg-tvdb').value = s.TVDB_API_KEY || "";
+                    document.getElementById('cfg-plex-url').value = s.PLEX_URL || "";
+                    document.getElementById('cfg-plex-token').value = s.PLEX_TOKEN || "";
+                    document.getElementById('cfg-plex-path').value = s.PLEX_BASE_PATH || "";
+                    document.getElementById('cfg-docker-path').value = s.DOCKER_BASE_PATH || "";
+                    document.getElementById('cfg-default-source-movie').value = s.DEFAULT_SOURCE_MOVIE || "tmdb";
+                    document.getElementById('cfg-default-source-show').value = s.DEFAULT_SOURCE_SHOW || "tvdb";
+                    document.getElementById('cfg-auto-bg').checked = s.AUTO_BACKGROUNDS;
+                    document.getElementById('cfg-save-disk').checked = s.SAVE_DISK;
+                    document.getElementById('cfg-debug-mode').checked = s.DEBUG_MODE;
+                    document.getElementById('cfg-v3-auto-add').checked = s.V3_AUTO_ADD || false;
+                    document.getElementById('cfg-add-one-day').checked = s.ADD_ONE_DAY_MOVIES || false;
+                    document.getElementById('cfg-radarr-url').value = s.RADARR_URL || "";
+                    document.getElementById('cfg-radarr-key').value = s.RADARR_API_KEY || "";
+                    document.getElementById('cfg-sonarr-url').value = s.SONARR_URL || "";
+                    document.getElementById('cfg-sonarr-key').value = s.SONARR_API_KEY || "";
+                    document.getElementById('cfg-v3-days').value = s.V3_DAYS_OUT || 30;
+                    document.getElementById('cfg-v3-movies').value = s.V3_MAX_MOVIES || 15;
+                    document.getElementById('cfg-v3-shows').value = s.V3_MAX_SHOWS || 15;
+                    document.getElementById('cfg-v3-gap').value = s.V3_MIN_GAP_DAYS || 29;
+                    
+                    document.getElementById('MAINTENANCE_TIME').value = s.MAINTENANCE_TIME || "03:00";
+                    if (s.ENABLE_MAINTENANCE !== undefined) {
+                        document.getElementById('cfg-enable-maintenance').checked = String(s.ENABLE_MAINTENANCE).toLowerCase() === "true";
+                    } else {
+                        document.getElementById('cfg-enable-maintenance').checked = true;
+                    }
+                    
+                    document.getElementById('cfg-overlay-position').value = s.OVERLAY_POSITION || "bottom";
+                    document.getElementById('cfg-overlay-color').value = s.OVERLAY_COLOR || "#c80000";
+                    document.getElementById('cfg-overlay-transparency').value = s.OVERLAY_TRANSPARENCY !== undefined ? s.OVERLAY_TRANSPARENCY : 220;
+                    document.getElementById('trans-val').innerText = document.getElementById('cfg-overlay-transparency').value;
+                    if (s.OVERLAY_FONT) document.getElementById('cfg-overlay-font').value = s.OVERLAY_FONT;
+                    document.getElementById('fontColor').value = s.OVERLAY_FONT_COLOR || "#ffffff";
+                    if (s.OVERLAY_FONT_SCALE) {
+                        document.getElementById('cfg-overlay-font-scale').value = s.OVERLAY_FONT_SCALE;
+                        document.getElementById('cfg-scale-val').innerText = s.OVERLAY_FONT_SCALE;
+                    }
+                    document.getElementById('webhookToken').value = s.WEBHOOK_TOKEN || "";
+                    document.getElementById('cfg-auth-user').value = s.AUTH_USER || "";
+                    document.getElementById('cfg-auth-pass').value = s.AUTH_PASS || "";
+                    if (s.AUTH_BYPASS_LOCAL !== undefined) {
+                        document.getElementById('cfg-auth-bypass').checked = String(s.AUTH_BYPASS_LOCAL).toLowerCase() === "true";
+                    } else {
+                        document.getElementById('cfg-auth-bypass').checked = true;
+                    }
+                    
+                    appSettings = s; // Save globally so font fetch can use it if it finishes later
+                }
+            } catch(e) { console.error("Failed to load settings:", e); }
+        }
+
+        async function saveSettings() {
+            const payload = {
+                "TMDB_API_KEY": document.getElementById('cfg-tmdb').value,
+                "TVDB_API_KEY": document.getElementById('cfg-tvdb').value,
+                "PLEX_URL": document.getElementById('cfg-plex-url').value,
+                "PLEX_TOKEN": document.getElementById('cfg-plex-token').value,
+                "PLEX_BASE_PATH": document.getElementById('cfg-plex-path').value,
+                "DOCKER_BASE_PATH": document.getElementById('cfg-docker-path').value,
+                "DEFAULT_SOURCE_MOVIE": document.getElementById('cfg-default-source-movie').value,
+                "DEFAULT_SOURCE_SHOW": document.getElementById('cfg-default-source-show').value,
+                "AUTO_BACKGROUNDS": document.getElementById('cfg-auto-bg').checked,
+                "SAVE_DISK": document.getElementById('cfg-save-disk').checked,
+                "DEBUG_MODE": document.getElementById('cfg-debug-mode').checked,
+                "V3_AUTO_ADD": document.getElementById('cfg-v3-auto-add').checked,
+                "ADD_ONE_DAY_MOVIES": document.getElementById('cfg-add-one-day').checked,
+                "RADARR_URL": document.getElementById('cfg-radarr-url').value,
+                "RADARR_API_KEY": document.getElementById('cfg-radarr-key').value,
+                "SONARR_URL": document.getElementById('cfg-sonarr-url').value,
+                "SONARR_API_KEY": document.getElementById('cfg-sonarr-key').value,
+                "V3_DAYS_OUT": parseInt(document.getElementById('cfg-v3-days').value),
+                "V3_MAX_MOVIES": parseInt(document.getElementById('cfg-v3-movies').value),
+                "V3_MAX_SHOWS": parseInt(document.getElementById('cfg-v3-shows').value),
+                "V3_MIN_GAP_DAYS": parseInt(document.getElementById('cfg-v3-gap').value),
+                "MAINTENANCE_TIME": document.getElementById('MAINTENANCE_TIME').value,
+                "ENABLE_MAINTENANCE": document.getElementById('cfg-enable-maintenance').checked,
+                
+                "WEBHOOK_TOKEN": document.getElementById('webhookToken').value,
+                "AUTH_USER": document.getElementById('cfg-auth-user').value,
+                "AUTH_PASS": document.getElementById('cfg-auth-pass').value,
+                "AUTH_BYPASS_LOCAL": document.getElementById('cfg-auth-bypass').checked,
+                "OVERLAY_POSITION": document.getElementById('cfg-overlay-position').value,
+                "OVERLAY_COLOR": document.getElementById('cfg-overlay-color').value,
+                "OVERLAY_TRANSPARENCY": parseInt(document.getElementById('cfg-overlay-transparency').value),
+                "OVERLAY_FONT": document.getElementById('cfg-overlay-font').value,
+                "OVERLAY_FONT_COLOR": document.getElementById('fontColor').value,
+                "OVERLAY_FONT_SCALE": parseInt(document.getElementById('cfg-overlay-font-scale').value),
+                WEBHOOK_TOKEN: document.getElementById('webhookToken').value
+            };
+            const msgBox = document.getElementById('status-msg');
+            msgBox.style.display = 'block';
+            msgBox.style.color = '#fff';
+            msgBox.innerText = 'Saving...';
+            
+            try {
+                const res = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const data = await res.json();
+                if (data.success) {
+                    msgBox.style.color = 'var(--success-green)';
+                    msgBox.innerText = '✅ Settings Saved Successfully!';
+                    setTimeout(() => msgBox.style.display = 'none', 3000);
+                } else {
+                    msgBox.style.color = 'var(--danger-red)';
+                    msgBox.innerText = '❌ Error saving settings.';
+                }
+            } catch(e) {
+                msgBox.style.color = 'var(--danger-red)';
+                msgBox.innerText = '❌ JS Crash saving settings.';
+            }
+        }
+
+        async function testConnection(service, btnElement) {
+            const originalText = btnElement.innerText;
+            btnElement.innerText = "⏳...";
+            btnElement.disabled = true;
+
+            const payload = { service: service };
+
+            // Grab the live inputs exactly as they are currently typed in the box
+            if (service === 'tmdb') payload.api_key = document.getElementById('cfg-tmdb').value;
+            if (service === 'tvdb') payload.api_key = document.getElementById('cfg-tvdb').value;
+            if (service === 'plex') {
+                payload.url = document.getElementById('cfg-plex-url').value;
+                payload.api_key = document.getElementById('cfg-plex-token').value;
+            }
+            if (service === 'radarr') {
+                payload.url = document.getElementById('cfg-radarr-url').value;
+                payload.api_key = document.getElementById('cfg-radarr-key').value;
+            }
+            if (service === 'sonarr') {
+                payload.url = document.getElementById('cfg-sonarr-url').value;
+                payload.api_key = document.getElementById('cfg-sonarr-key').value;
+            }
+
+            try {
+                const res = await fetch('/api/test/connection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                alert(data.message); // A quick pop-up telling the user the result
+            } catch (e) {
+                alert("❌ Critical Error: Could not reach backend.");
+            }
+
+            btnElement.innerText = originalText;
+            btnElement.disabled = false;
+        }
+
+        async function runManualJanitor() {
+            console.log("[Janitor] Triggering manual maintenance run...");
+            try {
+                const res = await fetch('/api/v3/maintenance/run', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    alert("🧹 Janitor started! Check your terminal logs for live progress.");
+                } else {
+                    alert("❌ Failed to start Janitor: " + data.message);
+                }
+            } catch (err) {
+                alert("❌ Trigger Error: " + err);
+            }
+        }
+
+        async function viewJanitorLogs() {
+            const container = document.getElementById('janitor-log-container');
+            const output = document.getElementById('janitor-log-output');
+            container.style.display = 'block';
+            output.innerText = "Loading logs...";
+            
+            try {
+                const res = await fetch('/api/v3/maintenance/logs');
+                const data = await res.json();
+                if (data.success) {
+                    output.innerText = data.logs;
+                    output.scrollTop = output.scrollHeight; // Auto-scroll to bottom
+                } else {
+                    output.innerText = "❌ Failed to load logs.";
+                }
+            } catch (err) {
+                output.innerText = "❌ API Error.";
+            }
+        }
+
+        window.onload = loadSettings;
+    </script>
+    </main>
+</div>
+</body>
+</html>

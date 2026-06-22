@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Poster Forge</title>
+    <link rel="icon" href="/static/thor_logo.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* Specific Poster Forge Layout Overrides */
+        :root {
+            --thumb-size: 160px;
+            --success-green: var(--success);
+            --danger-red: var(--error);
+            --accent-primary: var(--accent);
+            --border-color: var(--border);
+            --text-main: var(--text-primary);
+        }
+        
+        /* Sidebar layout additions */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-w);
+            transition: margin-left var(--transition-slow);
+            padding: 40px;
+            min-height: 100vh;
+        }
+        body.sidebar-collapsed .main-content {
+            margin-left: var(--sidebar-w-collapsed);
+        }
+        body.sidebar-collapsed .sidebar {
+            width: var(--sidebar-w-collapsed);
+        }
+        body.sidebar-collapsed .sidebar-logo-text, 
+        body.sidebar-collapsed .nav-text, 
+        body.sidebar-collapsed .sidebar-nav-label {
+            display: none;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-3);
+            padding: var(--sp-2) var(--sp-3);
+            border-radius: var(--radius);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: background-color var(--transition), color var(--transition);
+            margin-bottom: 2px;
+        }
+        .nav-item:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        .nav-item.active {
+            background-color: var(--accent-dim);
+            color: var(--accent);
+            font-weight: var(--fw-medium);
+        }
+        .nav-icon {
+            font-size: 1.25rem;
+            width: 24px;
+            text-align: center;
+        }
+        
+        /* Map old classes to new design system */
+        .card { background-color: var(--bg-surface); padding: 25px; border-radius: var(--radius-lg); margin-bottom: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+        h2 { margin-top: 0; color: var(--text-primary); font-weight: 600; letter-spacing: 0.5px; }
+        .search-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        select, input[type="text"], input[type="password"] { padding: 12px 15px; background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-main); border-radius: var(--radius); outline: none; transition: border-color 0.2s; box-sizing: border-box; }
+        select:focus, input[type="text"]:focus, input[type="password"]:focus { border-color: var(--accent); }
+        .search-bar input[type="text"] { flex-grow: 1; min-width: 250px; width: auto; }
+        
+        button { font-family: var(--font); color: #fff; padding: 10px 20px; border: none; border-radius: var(--radius); cursor: pointer; font-weight: 600; transition: all 0.2s ease; letter-spacing: 0.5px; }
+        button:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.1); box-shadow: var(--shadow-sm); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-copper { background-color: var(--accent); color: #fff; }
+        .btn-steel { background-color: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-slate { background-color: var(--bg-hover); border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-forge { background-color: var(--bg-active); border: 1px solid var(--border); color: var(--text-primary); }
+        .btn-danger { background-color: var(--error); color: #fff; }
+        
+        .options-bar { background: var(--bg-elevated); padding: 15px 20px; border-radius: var(--radius); display: flex; gap: 25px; align-items: center; flex-wrap: wrap; border: 1px solid var(--border); justify-content: space-between; }
+        .slider-container { display: flex; align-items: center; gap: 12px; background: var(--bg-surface); padding: 8px 18px; border-radius: var(--radius); border: 1px solid var(--border); }
+        .slider-container span { font-size: 0.85em; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        #console { background: var(--bg-base); padding: 20px; font-family: monospace; border-radius: var(--radius); color: var(--text-muted); height: 250px; overflow-y: auto; white-space: pre-wrap; border: 1px solid var(--border); font-size: 0.9em; line-height: 1.5; }
+        #console .highlight { color: var(--accent); }
+        
+        .grid { display: grid; gap: 20px; margin-top: 25px; transition: opacity 0.3s; }
+        body.mode-poster .grid { grid-template-columns: repeat(auto-fill, minmax(var(--thumb-size), 1fr)); }
+        body.mode-backdrop .grid { grid-template-columns: repeat(auto-fill, minmax(calc(var(--thumb-size) * 1.6), 1fr)); }
+        
+        .poster-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; max-height: 60vh; overflow-y: auto; padding-right: 10px; }
+
+        .result-card { background: var(--bg-elevated); padding: 12px; border-radius: var(--radius-md); text-align: center; border: 1px solid var(--border); display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s; }
+        .result-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--border-focus); }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        .result-card img { width: 100%; border-radius: var(--radius-sm); object-fit: cover; background: var(--bg-base); margin-bottom: 12px; transition: opacity 0.3s ease-in-out; animation: fadeIn 1.2s ease-in-out; }
+        
+        .img-vertical { aspect-ratio: 2/3; }
+        .img-widescreen { aspect-ratio: 16/9; }
+        .result-title { font-size: 0.95em; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; color: var(--text-main); }
+        
+        .btn-group-poster, .btn-group-backdrop { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+        body.mode-poster .btn-group-backdrop { display: none !important; }
+        body.mode-backdrop .btn-group-poster { display: none !important; }
+
+        .apply-btn { width: 100%; font-size: 0.75em; padding: 8px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; border-radius: 4px; }
+        .inline-seasons-wrapper { grid-column: 1 / -1; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 25px; display: none; margin-bottom: 10px; position: relative; box-shadow: inset 0 4px 20px rgba(0,0,0,0.5); }
+        .inline-seasons-wrapper h3 { margin-top: 0; color: var(--text-primary); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .close-inline-btn { position: absolute; top: 20px; right: 25px; background: transparent; color: var(--text-muted); font-size: 1.8em; padding: 0; line-height: 1; }
+        .pagination-container { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; }
+        .pagination-controls { display: flex; gap: 20px; align-items: center; }
+        .pagination-controls button { padding: 10px 20px; }
+        .results-badge { background: var(--bg-active); border: 1px solid var(--border); padding: 8px 18px; border-radius: var(--radius-full); font-size: 0.9em; font-weight: 600; color: var(--accent); letter-spacing: 1px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 17, 23, 0.85); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
+        .modal-content { background: var(--bg-surface); padding: 25px; border-radius: var(--radius-lg); max-width: 900px; width: 90%; border: 1px solid var(--border); max-height: 90vh; box-shadow: var(--shadow-lg); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
+        .modal-header h3 { margin: 0; color: var(--text-primary); }
+        .close-btn { cursor: pointer; font-size: 1.8em; color: var(--text-muted); border: none; background: none; padding: 0; margin: 0; line-height: 1; }
+        .poster-option { position: relative; cursor: pointer; border: 2px solid transparent; border-radius: var(--radius); transition: 0.2s; overflow: hidden;}
+        .poster-option:hover { border-color: var(--accent); transform: scale(1.03); box-shadow: 0 4px 15px var(--accent-dim); }
+        .poster-option img { width: 100%; display: block; object-fit: cover;}
+        
+        .preview-img { width: 100%; max-width: 400px; border-radius: var(--radius); box-shadow: var(--shadow-lg); margin: 0 auto 20px auto; display: block;}
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-base); }
+        ::-webkit-scrollbar-thumb { background: var(--bg-active); border-radius: 4px; }
+        .checkbox-group label { display: flex; align-items: center; margin-bottom: 10px; gap: 10px; }
+    </style>
+</head>
+<body class="mode-poster">
+    <input type="hidden" id="plexTokenFallback" value="">
+    <div class="layout">
+    <aside class="sidebar" id="sidebar">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px;">
+            <a href="/" style="display: flex; align-items: center; text-decoration: none; gap: 10px;">
+                <img class="sidebar-logo-icon" src="/static/thor_logo.png" style="width: 28px; height: 28px; object-fit: contain;">
+                <div class="sidebar-logo-text" style="color: var(--text-main); font-size: 1.2rem; font-weight: bold;">Poster <span style="color: var(--accent);">Forge</span></div>
+            </a>
+            <button onclick="document.body.classList.toggle('sidebar-collapsed')" style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; padding: 0;">☰</button>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-label">Main</div>
+            <a href="/" class="nav-item active">
+                <span class="nav-icon">⌂</span>
+                <span class="nav-text">Dashboard</span>
+            </a>
+            <a href="/settings" class="nav-item">
+                <span class="nav-icon">⚙</span>
+                <span class="nav-text">Settings</span>
+            </a>
+            <a href="/about" class="nav-item">
+                <span class="nav-icon">ℹ</span>
+                <span class="nav-text">About</span>
+            </a>
+            <a href="/logout" class="nav-item">
+                <span class="nav-icon">⎋</span>
+                <span class="nav-text">Sign Out</span>
+            </a>
+        </nav>
+    </aside>
+    <main class="main-content">
+<div class="container">
+        
+
+        <div class="card" style="border-left: 4px solid var(--accent-primary);">
+            <h3 style="margin-top: 0; margin-bottom: 20px;">Automated Tracking Engine</h3>
+            <p style="color: var(--text-muted); margin-top: -10px; margin-bottom: 20px;">
+                Automatically tracks Radarr/Sonarr and builds custom countdown posters. Ensure you have created a "Coming Soon" Movie library in Plex before running.
+            </p>
+            <button class="btn-copper" onclick="loadV3Upcoming()">Scan *arr Applications for Upcoming Media</button>
+            
+            <div id="v3Grid" class="grid" style="display: none;"></div>
+        </div>
+        
+        <div class="card">
+            <h3 style="margin-top: 0; margin-bottom: 20px;">Search Plex Library</h3>
+            <div class="search-bar">
+                <select id="librarySelect" onchange="toggleOptions()"><option value="">Loading Libraries...</option></select>
+                <select id="mediaTypeSelect" onchange="searchPlex(1)">
+                    <option value="false">Standard Media</option>
+                    <option value="true">Collections (Box Sets)</option>
+                </select>
+                <select id="sortSelect" onchange="searchPlex(1)">
+                    <option value="titleSort:asc">A-Z</option>
+                    <option value="titleSort:desc">Z-A</option>
+                    <option value="addedAt:desc">Newest Added</option>
+                    <option value="addedAt:asc">Oldest Added</option>
+                    <option value="originallyAvailableAt:desc">Release Date (Newest)</option>
+                    <option value="originallyAvailableAt:asc">Release Date (Oldest)</option>
+                </select>
+                <select id="limitSelect" onchange="searchPlex(1)">
+                    <option value="50">50 per page</option><option value="100">100 per page</option><option value="250">250 per page</option><option value="500">500 per page</option>
+                </select>
+                <input type="text" id="searchQuery" placeholder="Enter title..." onkeypress="if(event.key === 'Enter') searchPlex(1)">
+                <button id="searchBtn" class="btn-copper" onclick="searchPlex(1)">Search</button>
+                <button id="nukeBtn" class="btn-danger" onclick="nukeLibrary()">☢️ Nuke Library</button>
+            </div>
+            
+            <div class="options-bar">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="color: var(--text-muted); font-size: 0.9em; font-weight: 500;">Dashboard View:</span>
+                    <div style="background: #1a1a1a; border-radius: 6px; padding: 4px; display: flex; gap: 5px;">
+                        <button id="btn-dash-poster" style="margin:0; padding: 6px 12px; background: var(--accent-primary);" onclick="switchDashboardMode('poster')">Posters</button>
+                        <button id="btn-dash-backdrop" style="margin:0; padding: 6px 12px; background: transparent; color: var(--text-muted);" onclick="switchDashboardMode('backdrop')">Backgrounds</button>
+                    </div>
+                </div>
+
+                <div class="slider-container">
+                    <span>Zoom</span>
+                    <input type="range" id="sizeSlider" min="100" max="300" value="160" oninput="updateThumbSize(this.value)">
+                </div>
+            </div>
+            
+            <div id="topPagination" class="pagination-container"></div>
+            <div id="resultsGrid" class="grid"></div>
+            <div id="bottomPagination" class="pagination-container"></div>
+            
+        </div>
+        <h3>Terminal Output</h3>
+        <div id="console">Ready for visual search...</div>
+    </div>
+
+    <div id="previewModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 900px; display:flex; flex-direction:column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
+                <h3 style="margin: 0;" id="previewModalTitle">Step 1: Choose Poster</h3>
+                <button class="close-btn" onclick="document.getElementById('previewModal').style.display='none'">&times;</button>
+            </div>
+            
+            <div id="previewStep1" style="display: block;">
+                <div id="previewPickerLoading" style="text-align:center; padding: 20px; color: var(--text-muted);">Fetching high-res options from Database...</div>
+                <div id="previewPickerGrid" class="poster-grid" style="grid-template-columns: repeat(5, 1fr);"></div>
+            </div>
+
+            <div id="previewStep2" style="display: none; gap: 20px;">
+                <div style="flex: 1; text-align: center;">
+                    <div id="previewLoading" style="padding: 50px 0; color: var(--accent-primary); text-align: center; display: none;">Drawing Canvas in Memory...</div>
+                    <img id="livePreviewImg" class="preview-img" style="display: none; margin: 0 auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                </div>
+                <div style="flex: 1; background: #0a0a0a; padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 15px;">
+                    <div style="display:flex; justify-content: space-between;">
+                        <h4 style="margin:0; color:var(--text-main);">Banner Settings</h4>
+                        <button class="btn-slate" style="padding: 4px 8px; font-size:0.8em;" onclick="goBackToPreviewStep1()">Back</button>
+                    </div>
+                    
+                    <div>
+                        <label style="font-size:0.8em; color:var(--text-muted); text-transform:uppercase;">Position</label>
+                        <select id="v3-overlay-position" onchange="triggerLivePreviewReload()" style="padding:8px;">
+                            <option value="top">Top</option>
+                            <option value="middle">Middle</option>
+                            <option value="bottom" selected>Bottom</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; gap:15px;">
+                        <div style="flex:1;">
+                            <label style="font-size:0.8em; color:var(--text-muted); text-transform:uppercase;">Color</label>
+                            <input type="color" id="v3-overlay-color" value="#c80000" onchange="triggerLivePreviewReload()" style="width:100%; height:35px; padding:2px; background:#000;">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:0.8em; color:var(--text-muted); text-transform:uppercase;">Font Color</label>
+                            <input type="color" id="v3-overlay-font-color" value="#ffffff" onchange="triggerLivePreviewReload()" style="width:100%; height:35px; padding:2px; background:#000;">
+                        </div>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8em; color:var(--text-muted); text-transform:uppercase;">Transparency (<span id="v3-trans-val">220</span>)</label>
+                        <input type="range" id="v3-overlay-transparency" min="0" max="255" value="220" oninput="document.getElementById('v3-trans-val').innerText=this.value" onchange="triggerLivePreviewReload()" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8em; color:var(--text-muted); text-transform:uppercase;">Font Selection</label>
+                        <select id="v3-overlay-font" onchange="triggerLivePreviewReload()" style="padding:8px;"></select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8em; color:var(--text-muted); text-transform:uppercase;">Font Scale (<span id="v3-scale-val">100</span>%)</label>
+                        <input type="range" id="v3-overlay-font-scale" min="50" max="150" value="100" oninput="document.getElementById('v3-scale-val').innerText=this.value" onchange="triggerLivePreviewReload()" style="width:100%;">
+                    </div>
+                    
+                    <div style="margin-top: auto; padding-top: 15px;">
+                        <button class="btn-copper" style="width: 100%;" id="commitBtn">Inject Trailer & Push to Plex</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="posterModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header" style="align-items: flex-start;">
+                <div>
+                    <h3 style="margin: 0;">Select Artwork</h3>
+                    <label style="cursor:pointer; display:inline-flex; align-items:center; gap:8px; font-size: 0.85em; color: var(--text-muted); margin-top: 8px;">
+                        <input type="checkbox" id="modalSaveDisk"> Save to Local Disk
+                    </label>
+                </div>
+                <div style="background: #1a1a1a; border-radius: 6px; padding: 4px; display: flex; gap: 5px; margin-top: 2px;">
+                    <button id="btn-art-poster" style="margin:0; padding: 6px 12px; background: var(--accent-primary);" onclick="switchArtMode('poster')">Posters</button>
+                    <button id="btn-art-backdrop" style="margin:0; padding: 6px 12px; background: transparent; color: var(--text-muted);" onclick="switchArtMode('backdrop')">Backgrounds</button>
+                </div>
+                <div style="background: #1a1a1a; border-radius: 6px; padding: 4px; display: flex; gap: 5px; margin-top: 2px;">
+                    <button id="btn-tmdb" style="margin:0; padding: 6px 12px; background: var(--accent-primary);" onclick="switchSource('tmdb')">TMDB</button>
+                    <button id="btn-tvdb" style="margin:0; padding: 6px 12px; background: transparent; color: var(--text-muted);" onclick="switchSource('tvdb')">TVDB</button>
+                </div>
+                <button class="close-btn" style="margin-top: 2px;" onclick="closeModal(true)">&times;</button>
+            </div>
+            <div id="modalLoading" style="text-align:center; padding: 20px; color: var(--text-muted);">Fetching high-res options from Database...</div>
+            <div id="modalGrid" class="poster-grid"></div>
+        </div>
+    </div>
+    
+    <div id="uploadModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3>Upload Custom Art</h3>
+                <div style="background: #1a1a1a; border-radius: 6px; padding: 4px; display: flex; gap: 5px;">
+                    <button id="btn-up-poster" style="margin:0; padding: 6px 12px; background: var(--accent-primary);" onclick="switchArtMode('poster')">Poster</button>
+                    <button id="btn-up-backdrop" style="margin:0; padding: 6px 12px; background: transparent; color: var(--text-muted);" onclick="switchArtMode('backdrop')">🌄 Background</button>
+                </div>
+                <button class="close-btn" onclick="closeUploadModal()">&times;</button>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <input type="file" id="customFileInput" accept="image/*" style="background: #0a0a0a; color: #fff; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; width: 100%;">
+                <label style="cursor:pointer; display:inline-flex; align-items:center; gap:8px; font-size: 0.9em; color: var(--text-muted); margin-top: 12px;">
+                    <input type="checkbox" id="uploadSaveDisk"> Save copy to local media folder
+                </label>
+            </div>
+            <div style="max-height: 500px; overflow: hidden; background: #000; border-radius: 8px; display: flex; justify-content: center; align-items: center;">
+                <img id="cropImage" style="max-width: 100%; display: none;">
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 15px;">
+                <button class="btn-copper" style="flex-grow: 1;" onclick="submitCustomUpload()">Apply & Upload to Plex</button>
+                <button class="btn-steel" onclick="closeUploadModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="auditModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <h3>Post-Batch Processing Audit Report</h3>
+                <button class="close-btn" onclick="document.getElementById('auditModal').style.display='none'">&times;</button>
+            </div>
+            <div id="auditContent"></div>
+            <button class="btn-steel" style="width: 100%;" onclick="document.getElementById('auditModal').style.display='none'">Acknowledge & Close</button>
+        </div>
+    </div>
+
+    <script>
+        const delay = ms => new Promise(res => setTimeout(res, ms));
+        let currentTargetKey = null;
+        let currentSeasonNum = null;
+        let libraryMap = {}; 
+        let activeInlineKey = null;
+        let isHandlingHistory = false;
+        let isNuking = false;
+
+        let currentModalSource = 'tmdb'; 
+        let currentForcedType = 'movie'; 
+        let currentArtMode = 'poster'; 
+        let currentDashboardMode = 'poster'; 
+        
+        let appSettings = {};
+        
+        let nukeStats = { movie: { success: [], failed: [] }, show: { success: [], failed: [] }, collection: { success: [], failed: [] } };
+        let cropper = null;
+        let uploadTargetKey = null;
+        let uploadMediaType = null;
+        let uploadSeasonNum = null;
+
+        window.addEventListener('popstate', (event) => {
+            if (isHandlingHistory) return; 
+            if (document.getElementById('posterModal').style.display === 'flex') document.getElementById('posterModal').style.display = 'none';
+            else if (document.getElementById('auditModal').style.display === 'flex') document.getElementById('auditModal').style.display = 'none';
+            else if (document.getElementById('uploadModal').style.display === 'flex') closeUploadModal();
+            else if (document.getElementById('previewModal').style.display === 'flex') document.getElementById('previewModal').style.display = 'none';
+            else if (activeInlineKey) {
+                const wrapper = document.getElementById('inline-wrapper-' + activeInlineKey);
+                if (wrapper) wrapper.remove();
+                activeInlineKey = null;
+            }
+        });
+
+        function pushStateTrap(type) { history.pushState({view: type}, "", ""); }
+        function updateThumbSize(val) { document.documentElement.style.setProperty('--thumb-size', val + 'px'); }
+        function logOutput(msg, highlight=false, type='INFO') {
+            const log = document.getElementById('console');
+            
+            // Clean up old formats
+            let cleanMsg = msg.replace(/[❌✅⚠️🚀☢️🛑🎉💾]/g, '').trim();
+            cleanMsg = cleanMsg.replace(/\[V[23]\]\s*/g, '');
+            cleanMsg = cleanMsg.replace(/Nuke|NUKE/g, 'Batch Processing');
+            
+            if (!cleanMsg) return;
+
+            let level = type.toUpperCase();
+            if (cleanMsg.includes('Error') || cleanMsg.includes('Crash') || cleanMsg.includes('Failed')) level = 'ERROR';
+            else if (cleanMsg.includes('Success') || highlight) level = 'SUCCESS';
+
+            let color = 'var(--text-muted)';
+            if (level === 'SUCCESS') color = 'var(--success-green, #4ade80)';
+            if (level === 'ERROR') color = 'var(--danger-red, #f87171)';
+            if (level === 'WARN') color = '#fbbf24'; // amber
+
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+            
+            const formattedMsg = `\n<span style="color:#666;">[${timeStr}]</span> <span style="color:${color}; font-weight:bold;">[${level}]</span> <span style="color:${color === 'var(--text-muted)' ? '#ccc' : color};">${cleanMsg}</span>`;
+
+            log.innerHTML += formattedMsg;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function switchDashboardMode(mode) {
+            currentDashboardMode = mode;
+            document.body.className = `mode-${mode}`;
+            
+            const btnPoster = document.getElementById('btn-dash-poster');
+            const btnBackdrop = document.getElementById('btn-dash-backdrop');
+            btnPoster.style.background = mode === 'poster' ? 'var(--accent-primary)' : 'transparent';
+            btnPoster.style.color = mode === 'poster' ? '#fff' : 'var(--text-muted)';
+            btnBackdrop.style.background = mode === 'backdrop' ? 'var(--accent-primary)' : 'transparent';
+            btnBackdrop.style.color = mode === 'backdrop' ? '#fff' : 'var(--text-muted)';
+
+            document.querySelectorAll('.result-card img').forEach(img => {
+                if (mode === 'backdrop') {
+                    img.src = img.getAttribute('data-art');
+                    img.className = 'img-widescreen';
+                } else {
+                    img.src = img.getAttribute('data-thumb');
+                    img.className = 'img-vertical';
+                }
+            });
+
+            if (activeInlineKey) closeInlineSeasons(activeInlineKey, false);
+            currentArtMode = mode;
+        }
+
+        function switchArtMode(mode, triggerFetch = true) {
+            currentArtMode = mode;
+            ['poster', 'backdrop'].forEach(m => {
+                const btnArt = document.getElementById(`btn-art-${m}`);
+                const btnUp = document.getElementById(`btn-up-${m}`);
+                if (btnArt) {
+                    btnArt.style.background = m === mode ? 'var(--accent-primary)' : 'transparent';
+                    btnArt.style.color = m === mode ? '#fff' : 'var(--text-muted)';
+                }
+                if (btnUp) {
+                    btnUp.style.background = m === mode ? 'var(--accent-primary)' : 'transparent';
+                    btnUp.style.color = m === mode ? '#fff' : 'var(--text-muted)';
+                }
+            });
+            if (document.getElementById('uploadModal').style.display === 'flex' && cropper) {
+                cropper.setAspectRatio(mode === 'poster' ? 2/3 : 16/9);
+            } 
+            if (triggerFetch && document.getElementById('posterModal').style.display === 'flex' && currentTargetKey) {
+                openModal(currentTargetKey, currentSeasonNum, currentForcedType, false);
+            }
+        }
+
+        function switchSource(source) {
+            currentModalSource = source;
+            document.getElementById('btn-tmdb').style.background = source === 'tmdb' ? 'var(--accent-primary)' : 'transparent';
+            document.getElementById('btn-tmdb').style.color = source === 'tmdb' ? '#fff' : 'var(--text-muted)';
+            document.getElementById('btn-tvdb').style.background = source === 'tvdb' ? 'var(--accent-primary)' : 'transparent';
+            document.getElementById('btn-tvdb').style.color = source === 'tvdb' ? '#fff' : 'var(--text-muted)';
+            if (currentTargetKey) openModal(currentTargetKey, currentSeasonNum, currentForcedType, false);
+        }
+
+        function toggleUILock(locked) {
+            isNuking = locked;
+            ['librarySelect', 'mediaTypeSelect', 'sortSelect', 'limitSelect', 'searchQuery', 'searchBtn'].forEach(id => { document.getElementById(id).disabled = locked; });
+            const grid = document.getElementById('resultsGrid');
+            if (grid) { grid.style.opacity = locked ? '0.3' : '1'; grid.style.pointerEvents = locked ? 'none' : 'auto'; }
+
+            const nukeBtn = document.getElementById('nukeBtn');
+            if (locked) {
+                nukeBtn.innerHTML = '🛑 Stop Nuke';
+                nukeBtn.classList.replace('btn-danger', 'btn-steel');
+                nukeBtn.onclick = () => { isNuking = false; logOutput('\n⚠️ STOP SIGNAL RECEIVED. Aborting...', true); };
+            } else {
+                nukeBtn.innerHTML = '☢️ Nuke Library';
+                nukeBtn.classList.replace('btn-steel', 'btn-danger');
+                nukeBtn.onclick = nukeLibrary; 
+            }
+        }
+
+        function goHome() {
+            if (isNuking) isNuking = false; 
+            document.getElementById('searchQuery').value = '';
+            document.getElementById('resultsGrid').innerHTML = '';
+            document.getElementById('topPagination').innerHTML = '';
+            document.getElementById('bottomPagination').innerHTML = '';
+            document.getElementById('v3Grid').innerHTML = '';
+            document.getElementById('v3Grid').style.display = 'none';
+            document.getElementById('console').innerHTML = 'Ready for visual search...\n';
+            activeInlineKey = null;
+        }
+
+        async function initApp() {
+            try {
+                const cfgRes = await fetch('/api/settings');
+                const cfgData = await cfgRes.json();
+                if (cfgData.success) {
+                    appSettings = cfgData.settings; 
+                    if (cfgData.settings.PLEX_TOKEN) {
+                        document.getElementById('plexTokenFallback').value = cfgData.settings.PLEX_TOKEN;
+                    }
+                }
+                
+                const res = await fetch('/api/libraries');
+                const data = await res.json();
+                if (data.success) {
+                    const libSelect = document.getElementById('librarySelect');
+                    libSelect.innerHTML = '';
+                    data.libraries.forEach(lib => {
+                        libraryMap[lib.id] = lib.type;
+                        libSelect.innerHTML += `<option value="${lib.id}">${lib.title}</option>`;
+                    });
+                    toggleOptions();
+                } else {
+                    logOutput('❌ Failed to load libraries: ' + data.error);
+                }
+                
+                // ImageMaid redirection logic
+                if (window.location.search.includes('view_imagemaid=true')) {
+                    document.getElementById('console').scrollIntoView({ behavior: 'smooth', block: 'end' });
+                    let imageMaidPoll = setInterval(async () => {
+                        try {
+                            const res = await fetch('/api/imagemaid/logs');
+                            const data = await res.json();
+                            if (data.success) {
+                                const consoleEl = document.getElementById('console');
+                                // Check if we are currently at the bottom (within 50px tolerance)
+                                const isScrolledToBottom = consoleEl.scrollHeight - consoleEl.clientHeight <= consoleEl.scrollTop + 50;
+                                
+                                consoleEl.innerText = data.logs;
+                                
+                                // Only auto-scroll if the user hasn't manually scrolled up
+                                if (isScrolledToBottom) {
+                                    consoleEl.scrollTop = consoleEl.scrollHeight;
+                                }
+                                
+                                if (data.logs.includes('--- IMAGEMAID CLEANUP COMPLETE ---')) {
+                                    clearInterval(imageMaidPoll);
+                                    history.pushState(null, '', '/'); // clean url
+                                }
+                            }
+                        } catch(e) {}
+                    }, 1000);
+                }
+            } catch(e) { console.error("Init failed", e); }
+        }
+        window.onload = initApp;
+
+        function toggleOptions() { 
+            document.getElementById('resultsGrid').innerHTML = ''; 
+            document.getElementById('topPagination').innerHTML = '';
+            document.getElementById('bottomPagination').innerHTML = '';
+            activeInlineKey = null; 
+        }
+        function getBaseType() { return libraryMap[document.getElementById('librarySelect').value]; }
+
+        /* --- V3 COMING SOON FUNCTIONS --- */
+        async function loadV3Upcoming() {
+            const grid = document.getElementById('v3Grid');
+            grid.style.display = 'grid';
+            grid.innerHTML = '<p style="color: var(--text-muted); grid-column: 1/-1;">Querying...</p>';
+
+            try {
+                const res = await fetch('/api/v3/upcoming');
+                const data = await res.json();
+                
+                grid.innerHTML = '';
+                const allMedia = [...data.movies, ...data.shows];
+                
+                if (allMedia.length === 0) {
+                    grid.innerHTML = '<p style="color: var(--text-muted); grid-column: 1/-1;">No new upcoming media found.</p>';
+                    return;
+                }
+
+                allMedia.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'result-card v3-draft-card';
+                    card.id = 'card-' + (item.tmdb_id || item.tvdb_id);
+                    
+                    card.dataset.title = item.title;
+                    card.dataset.id = item.tmdb_id || item.tvdb_id;
+                    card.dataset.tagline = item.tagline;
+                    card.dataset.poster = item.poster_url;
+
+                    card.innerHTML = `
+                        <button style="float:right; background:none; border:none; color:#555;" onclick="this.parentElement.remove()">❌</button>
+                        <img src="${item.poster_url}" alt="Poster">
+                        <div class="result-title">${item.title}</div>
+                        <div style="font-size: 0.8em; color: var(--accent-primary); margin-bottom: 10px;">${item.tagline}</div>
+                        <button class="btn-slate" onclick="previewOverlay('${item.title.replace(/'/g, "\\'")}', '${item.tmdb_id || ''}', '${item.tvdb_id || ''}', '${item.type}', '${item.poster_url}', '${item.tagline}')">Preview</button>
+                    `;
+                    grid.appendChild(card);
+                });
+                
+                const batchBtn = document.createElement('button');
+                batchBtn.id = 'batchCommitBtn';
+                batchBtn.className = 'btn-copper';
+                batchBtn.style = "grid-column: 1/-1; margin-top:20px;";
+                batchBtn.innerText = "COMMIT BATCH TO PLEX";
+                batchBtn.onclick = commitBatch;
+                grid.appendChild(batchBtn);
+                
+            } catch (err) { logOutput(`❌ V3 Error: ${err}`); }
+        }
+
+        async function commitBatch() {
+            const batchBtn = document.getElementById('batchCommitBtn');
+            if (batchBtn) {
+                batchBtn.innerText = "⏳ Processing Batch...";
+                batchBtn.disabled = true;
+            }
+            
+            const activeCards = document.querySelectorAll('.v3-draft-card');
+            for (let card of activeCards) {
+                logOutput(`Queueing: ${card.dataset.title}...`);
+                
+                await fetch('/api/v3/commit', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        title: card.dataset.title,
+                        tmdb_id: card.dataset.id,
+                        tagline: card.dataset.tagline,
+                        poster_url: card.dataset.poster
+                    })
+                });
+                
+                await delay(500); // Keep the browser happy
+                
+                card.style.opacity = '0.5';
+                const closeBtn = card.querySelector('button');
+                if (closeBtn) closeBtn.remove();
+            }
+            
+            logOutput('✅ Batch successfully queued! Monitoring worker progress...', true);
+
+            // 🚨 THE FIX: The Recursive Poll
+            const poll = async () => {
+                try {
+                    const res = await fetch('/api/v3/status?t=' + new Date().getTime());
+                    const data = await res.json();
+                    
+                    if (data.active_tasks > 0) {
+                        if (batchBtn) batchBtn.innerText = `⏳ Processing (${data.active_tasks} items remaining)...`;
+                        // Trigger the next check in 3 seconds
+                        setTimeout(poll, 3000); 
+                    } else {
+                        // Queue is empty! Run victory sequence and let the loop naturally die.
+                        logOutput('\n🎉 All background tasks have successfully completed!', true);
+                        if (batchBtn) batchBtn.innerText = "🔄 Rescanning Queue...";
+                        
+                        await delay(2000);
+                        await loadV3Upcoming();
+                    }
+                } catch (err) {
+                    console.error("Polling error:", err);
+                    setTimeout(poll, 3000); // Keep trying if the network blips
+                }
+            };
+
+            // Kick off the very first check instantly!
+            poll(); 
+        }
+
+        let activePreviewItem = {};
+        let previewReloadTimer = null;
+
+        async function previewOverlay(title, tmdbId, tvdbId, type, posterUrl, tagline) {
+            pushStateTrap('preview');
+            const modal = document.getElementById('previewModal');
+            document.getElementById('previewStep1').style.display = 'block';
+            document.getElementById('previewStep2').style.display = 'none';
+            document.getElementById('previewModalTitle').innerText = `Step 1: Choose Poster for ${title}`;
+            modal.style.display = 'flex';
+            
+            activePreviewItem = { title, tmdbId, tvdbId, type, posterUrl, tagline };
+            
+            document.getElementById('previewPickerLoading').style.display = 'block';
+            document.getElementById('previewPickerGrid').innerHTML = '';
+            
+            // Prefill defaults from appSettings
+            document.getElementById('v3-overlay-position').value = appSettings.OVERLAY_POSITION || "bottom";
+            document.getElementById('v3-overlay-color').value = appSettings.OVERLAY_COLOR || "#c80000";
+            document.getElementById('v3-overlay-transparency').value = appSettings.OVERLAY_TRANSPARENCY !== undefined ? appSettings.OVERLAY_TRANSPARENCY : 220;
+            document.getElementById('v3-trans-val').innerText = document.getElementById('v3-overlay-transparency').value;
+            if(appSettings.OVERLAY_FONT) document.getElementById('v3-overlay-font').value = appSettings.OVERLAY_FONT;
+            document.getElementById('v3-overlay-font-color').value = appSettings.OVERLAY_FONT_COLOR || "#ffffff";
+            document.getElementById('v3-overlay-font-scale').value = appSettings.OVERLAY_FONT_SCALE || 100;
+            document.getElementById('v3-scale-val').innerText = document.getElementById('v3-overlay-font-scale').value;
+
+            try {
+                const queryParams = new URLSearchParams({ type: type });
+                if(tmdbId) queryParams.append('tmdb_id', tmdbId);
+                if(tvdbId) queryParams.append('tvdb_id', tvdbId);
+                
+                const res = await fetch('/api/v3/fetch_posters?' + queryParams.toString());
+                const data = await res.json();
+                
+                document.getElementById('previewPickerLoading').style.display = 'none';
+                
+                if(data.success && data.posters.length > 0) {
+                    data.posters.forEach(p => {
+                        const opt = document.createElement('div');
+                        opt.className = 'poster-option';
+                        opt.innerHTML = `<img src="${p.url}" alt="Poster">`;
+                        opt.onclick = () => {
+                            activePreviewItem.posterUrl = p.url;
+                            goToPreviewStep2();
+                        };
+                        document.getElementById('previewPickerGrid').appendChild(opt);
+                    });
+                } else {
+                    document.getElementById('previewPickerGrid').innerHTML = '<p style="grid-column:1/-1;">No alternative posters found.</p>';
+                    goToPreviewStep2(); // skip directly
+                }
+            } catch (err) {
+                logOutput(`❌ Fetch Posters Error: ${err}`);
+                goToPreviewStep2();
+            }
+            
+            if (document.getElementById('v3-overlay-font').options.length === 0) {
+                fetch('/api/v3/fonts').then(r=>r.json()).then(data=>{
+                    if(data.success) {
+                        data.fonts.forEach(f => {
+                            document.getElementById('v3-overlay-font').innerHTML += `<option value="${f}">${f}</option>`;
+                        });
+                        if(appSettings.OVERLAY_FONT) document.getElementById('v3-overlay-font').value = appSettings.OVERLAY_FONT;
+                    }
+                });
+            }
+        }
+        
+        function goBackToPreviewStep1() {
+            document.getElementById('previewStep1').style.display = 'block';
+            document.getElementById('previewStep2').style.display = 'none';
+            document.getElementById('previewModalTitle').innerText = `Step 1: Choose Poster for ${activePreviewItem.title}`;
+        }
+
+        function goToPreviewStep2() {
+            document.getElementById('previewStep1').style.display = 'none';
+            document.getElementById('previewStep2').style.display = 'flex';
+            document.getElementById('previewModalTitle').innerText = 'Step 2: Customize Banner';
+            triggerLivePreviewReload();
+        }
+
+        function triggerLivePreviewReload() {
+            clearTimeout(previewReloadTimer);
+            previewReloadTimer = setTimeout(loadLivePreviewCanvas, 300);
+        }
+
+        async function loadLivePreviewCanvas() {
+            const imgEl = document.getElementById('livePreviewImg');
+            const loading = document.getElementById('previewLoading');
+            const commitBtn = document.getElementById('commitBtn');
+            
+            imgEl.style.display = 'none';
+            loading.style.display = 'block';
+            
+            const payload = {
+                posterUrl: activePreviewItem.posterUrl,
+                tagline: activePreviewItem.tagline,
+                position: document.getElementById('v3-overlay-position').value,
+                bg_color: document.getElementById('v3-overlay-color').value,
+                transparency: document.getElementById('v3-overlay-transparency').value,
+                font_name: document.getElementById('v3-overlay-font').value,
+                font_color: document.getElementById('v3-overlay-font-color').value,
+                font_scale: document.getElementById('v3-overlay-font-scale').value
+            };
+
+            try {
+                const res = await fetch('/api/v3/preview_overlay', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const blob = await res.blob();
+                const objectURL = URL.createObjectURL(blob);
+                
+                loading.style.display = 'none';
+                imgEl.src = objectURL;
+                imgEl.style.display = 'block';
+                
+                commitBtn.onclick = () => {
+                    document.getElementById('previewModal').style.display = 'none';
+                    commitToPlex(
+                        activePreviewItem.title, 
+                        activePreviewItem.tmdbId || activePreviewItem.tvdbId, 
+                        activePreviewItem.posterUrl, 
+                        activePreviewItem.tagline,
+                        payload.position, payload.bg_color, payload.transparency, payload.font_name, payload.font_color
+                    );
+                };
+
+            } catch (err) {
+                loading.innerHTML = `❌ Preview Render Failed.`;
+                logOutput(`❌ Preview Error: ${err}`);
+            }
+        }
+
+        async function commitToPlex(title, id, posterUrl, tagline, position, bg_color, transparency, font_name, font_color) {
+            logOutput(`\n🚀 [V3] Initiating Background Pipeline for: ${title}`, true);
+            try {
+                const res = await fetch('/api/v3/commit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        title: title, tmdb_id: id, poster_url: posterUrl, tagline: tagline,
+                        position: position, bg_color: bg_color, transparency: transparency, font_name: font_name, font_color: font_color
+                    })
+                });
+                const data = await res.json();
+                logOutput(data.message, data.success);
+                
+                if (data.success) {
+                    const card = document.getElementById('card-' + id);
+                    if (card) {
+                        card.style.opacity = '0.5';
+                        setTimeout(() => card.remove(), 500);
+                    }
+                }
+            } catch (err) {
+                logOutput(`❌ Commit Error: ${err}`);
+            }
+        }
+
+        /* --- V2 STANDARD FUNCTIONS --- */
+        async function generateAuditReport(libTitle, libType) {
+            try {
+                const res = await fetch('/api/audit/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ library: libTitle, stats: nukeStats }) });
+                const data = await res.json();
+                
+                const t = nukeStats.totals;
+                const totalReplaced = t.series + t.seasons + t.backgrounds;
+                const totalFailed = nukeStats.movie.failed.length + nukeStats.show.failed.length + nukeStats.collection.failed.length;
+                
+                let mainLabel = libType === 'movie' ? 'Movie' : 'Series';
+                let seasonHtml = libType === 'show' ? `<div style="display:flex; justify-content:space-between; font-size: 0.9em; color: #ddd;"><span>Season Posters:</span> <span style="font-weight:bold; color:var(--accent-primary);">${t.seasons}</span></div>` : '';
+                
+                let html = `
+                    <div style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                        Report Generated: ${new Date().toLocaleString()}<br>
+                        Processing Time: ${t.time} seconds<br>
+                        Log Saved: ${data.filepath}
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 2em; font-weight: bold; color: var(--accent-primary);">${totalReplaced}</div>
+                            <div style="font-size: 0.8em; color: var(--text-muted); text-transform: uppercase;">Total Replaced</div>
+                        </div>
+                        <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 2em; font-weight: bold; color: var(--success-green);">${t.fallbacks}</div>
+                            <div style="font-size: 0.8em; color: var(--text-muted); text-transform: uppercase;">Fallbacks Used</div>
+                        </div>
+                        <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 2em; font-weight: bold; color: var(--danger-red);">${totalFailed + t.failures}</div>
+                            <div style="font-size: 0.8em; color: var(--text-muted); text-transform: uppercase;">Failures</div>
+                        </div>
+                        <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 8px; text-align: left; display:flex; flex-direction:column; justify-content:center; gap: 5px;">
+                            <div style="display:flex; justify-content:space-between; font-size: 0.9em; color: #ddd;"><span>${mainLabel} Posters:</span> <span style="font-weight:bold; color:var(--accent-primary);">${t.series}</span></div>
+                            ${seasonHtml}
+                            <div style="display:flex; justify-content:space-between; font-size: 0.9em; color: #ddd;"><span>Backgrounds:</span> <span style="font-weight:bold; color:var(--accent-primary);">${t.backgrounds}</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="audit-lists">`;
+                    
+                ['movie', 'show', 'collection'].forEach(type => {
+                    if (nukeStats[type].failed.length > 0) {
+                        html += `<strong>Failed ${type.toUpperCase()}S (${nukeStats[type].failed.length}):</strong><ul style="color: var(--danger-red);">`;
+                        nukeStats[type].failed.forEach(f => html += `<li>${f}</li>`);
+                        html += `</ul>`;
+                    }
+                });
+                
+                if (totalFailed === 0 && t.failures === 0) {
+                    html += `<div style="text-align:center; color: var(--success-green); padding: 20px;">Operation Completed Successfully with 0 Errors.</div>`;
+                }
+                
+                html += `</div>`;
+                document.getElementById('auditContent').innerHTML = html;
+                pushStateTrap('audit');
+                document.getElementById('auditModal').style.display = 'flex';
+            } catch(e) { logOutput('[ERROR] Failed to generate visual audit log: ' + e); }
+        }
+
+        async function nukeLibrary() {
+            const libSelect = document.getElementById('librarySelect');
+            const libId = libSelect.value;
+            const libTitle = libSelect.options[libSelect.selectedIndex] ? libSelect.options[libSelect.selectedIndex].text : "Library";
+            const isCol = document.getElementById('mediaTypeSelect').value;
+            
+            if (!libId) return alert("Select a library first.");
+            if (!confirm(`WARNING: This will sequentially update EVERY item shown in this view. Are you sure you wish to initiate Batch Processing?`)) return;
+
+            nukeStats = { 
+                movie: { success: [], failed: [] }, 
+                show: { success: [], failed: [] }, 
+                collection: { success: [], failed: [] },
+                totals: { series: 0, seasons: 0, backgrounds: 0, fallbacks: 0, failures: 0, time: 0 },
+                startTime: Date.now()
+            };
+            logOutput(`[INFO] Fetching all items in view for Batch Processing...`, true);
+            toggleUILock(true);
+
+            try {
+                const res = await fetch(`/api/library_keys?libraryId=${libId}&isCollection=${isCol}`);
+                const data = await res.json();
+                if (!data.success) { logOutput('[ERROR] ' + data.error); return; }
+
+                logOutput('[SUCCESS] Found ' + data.items.length + ' items. Beginning Sequential Batch Processing...', true);
+
+                for (let i = 0; i < data.items.length; i++) {
+                    if (!isNuking) { logOutput('[WARN] BATCH PROCESSING ABORTED BY USER.', true); break; }
+                    const item = data.items[i];
+                    logOutput(`[INFO] [${i+1}/${data.items.length}] Processing: ${item.title}...`);
+
+                    const payload = {
+                        ratingKey: item.ratingKey, type: item.type, 
+                        targetArt: currentDashboardMode === 'backdrop' ? 'backdrop' : 'both', 
+                        allSeasons: true, seasonNum: null, manualUrl: null
+                    };
+
+                    const applyRes = await fetch('/api/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    const applyData = await applyRes.json();
+                    
+                    logOutput(applyData.message, true);
+                    const statCat = item.type === 'collection' ? 'collection' : item.type === 'show' ? 'show' : 'movie';
+                    if (applyData.success) {
+                        nukeStats[statCat].success.push(item.title);
+                        if (applyData.stats) {
+                            nukeStats.totals.series += applyData.stats.series || 0;
+                            nukeStats.totals.seasons += applyData.stats.seasons || 0;
+                            nukeStats.totals.backgrounds += applyData.stats.backgrounds || 0;
+                            nukeStats.totals.fallbacks += applyData.stats.fallbacks || 0;
+                            nukeStats.totals.failures += applyData.stats.failures || 0;
+                        }
+                    }
+                    else {
+                        nukeStats[statCat].failed.push(`${item.title}: ${applyData.message.trim()}`);
+                    }
+                    
+                    if (applyData.success) refreshImageTags(item.ratingKey, applyData.newPosterUrls, null);
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+                
+                nukeStats.totals.time = ((Date.now() - nukeStats.startTime) / 1000).toFixed(1);
+                logOutput('[SUCCESS] BATCH PROCESSING COMPLETE! Compiling Audit Log...', true);
+                await generateAuditReport(libTitle, getBaseType());
+            } catch(e) { logOutput('[ERROR] Batch Processing Crash: ' + e.toString()); }  
+            finally { toggleUILock(false); }
+        }
+
+        async function searchPlex(page = 1) {
+            activeInlineKey = null; 
+            try {
+                const q = document.getElementById('searchQuery').value;
+                const libId = document.getElementById('librarySelect').value;
+                const sortMode = document.getElementById('sortSelect').value; 
+                const limit = document.getElementById('limitSelect').value; 
+                const isCol = document.getElementById('mediaTypeSelect').value;
+                const baseType = isCol === 'true' ? 'collection' : getBaseType();
+                const grid = document.getElementById('resultsGrid');
+                
+                logOutput(q ? `\n[Search] Scanning Library for "${q}"...` : `\n[Search] Loading Page ${page}...`);
+                grid.innerHTML = '<p style="text-align: center; grid-column: 1/-1; color: #888;">Searching The Forge...</p>';
+                document.getElementById('topPagination').innerHTML = '';
+                document.getElementById('bottomPagination').innerHTML = '';
+                
+                const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&libraryId=${libId}&page=${page}&limit=${limit}&sort=${sortMode}&isCollection=${isCol}`);
+                const data = await res.json();
+                
+                if (!data.success) { logOutput('❌ Error: ' + data.error); grid.innerHTML = ''; return; }
+                if (data.results.length === 0) { logOutput('⚠️ No results found.'); grid.innerHTML = ''; return; }
+                
+                logOutput('✅ Displaying ' + data.results.length + ' results.', true);
+                grid.innerHTML = '';
+                
+                data.results.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'result-card';
+                    card.id = 'card-' + item.ratingKey;
+                    
+                    const thumbUrl = item.thumb ? item.thumb : 'https://via.placeholder.com/150x225/111111/444444/?text=No+Poster';
+                    const artUrl = item.art ? item.art : 'https://via.placeholder.com/280x157/111111/444444/?text=No+Background';
+                    const activeUrl = currentDashboardMode === 'poster' ? thumbUrl : artUrl;
+                    const imgClass = currentDashboardMode === 'poster' ? 'img-vertical' : 'img-widescreen';
+                    
+                    let posterBtns = '';
+                    let backdropBtns = `
+                        <button class="apply-btn btn-slate" onclick="applyPoster('${item.ratingKey}', null, null, false, false)">Auto Background</button>
+                        <button class="apply-btn btn-forge" onclick="openModal('${item.ratingKey}', null, '${baseType}')">Edit Main Art</button>
+                        <button class="apply-btn btn-steel" onclick="openUploadModal('${item.ratingKey}', '${baseType}')">Local Upload</button>
+                    `;
+
+                    if (isCol === 'true') {
+                        posterBtns = `
+                            <button class="apply-btn btn-slate" onclick="applyPoster('${item.ratingKey}', null, null, false, false)">Auto Box Set</button>
+                            <button class="apply-btn btn-forge" onclick="openModal('${item.ratingKey}', null, 'collection')">Edit Art</button>
+                            <button class="apply-btn btn-steel" onclick="openUploadModal('${item.ratingKey}', 'collection')">Local Upload</button>
+                        `;
+                    } else if (baseType === 'show') {
+                        posterBtns = `
+                            <button class="apply-btn btn-slate" onclick="applyPoster('${item.ratingKey}', null, null, false, false)">Auto Main Only</button>
+                            <button class="apply-btn btn-forge" onclick="openModal('${item.ratingKey}', null, 'show')">Edit Main Art</button>
+                            <button class="apply-btn btn-copper" onclick="applyPoster('${item.ratingKey}', null, null, true, false)">Auto Main + Seasons</button>
+                            <button class="apply-btn btn-steel" onclick="openUploadModal('${item.ratingKey}', '${baseType}')">Local Upload</button>
+                            <button class="apply-btn btn-slate" onclick="loadSeasonsInline('${item.ratingKey}')">Load Seasons</button>
+                        `;
+                    } else {
+                        posterBtns = `
+                            <button class="apply-btn btn-slate" onclick="applyPoster('${item.ratingKey}', null, null, false, false)">Auto-Apply</button>
+                            <button class="apply-btn btn-forge" onclick="openModal('${item.ratingKey}', null, 'movie')">Edit Art</button>
+                            <button class="apply-btn btn-steel" onclick="openUploadModal('${item.ratingKey}', '${baseType}')">Local Upload</button>
+                        `;
+                    }
+
+                    card.innerHTML = `
+                        <img id="img-${item.ratingKey}-main" src="${activeUrl}" loading="lazy" data-thumb="${thumbUrl}" data-art="${artUrl}" class="${imgClass}" alt="Artwork">
+                        <div class="result-title">${item.title}</div>
+                        <div class="btn-group-poster">${posterBtns}</div>
+                        <div class="btn-group-backdrop">${backdropBtns}</div>
+                    `;
+                    grid.appendChild(card);
+                });
+                
+                if (data.pagination) {
+                    const prevDisabled = data.pagination.page <= 1 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : '';
+                    const nextDisabled = data.pagination.page >= data.pagination.totalPages ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : '';
+                    
+                    const pagHtml = `
+                        <div class="results-badge">${data.pagination.totalItems.toLocaleString()} Items Found</div>
+                        <div class="pagination-controls">
+                            <button class="btn-slate" onclick="searchPlex(${data.pagination.page - 1})" ${prevDisabled}>&laquo; Previous</button>
+                            <span style="color:var(--text-muted); font-weight: 500;">Page ${data.pagination.page} of ${data.pagination.totalPages}</span>
+                            <button class="btn-slate" onclick="searchPlex(${data.pagination.page + 1})" ${nextDisabled}>Next &raquo;</button>
+                        </div>
+                    `;
+                    
+                    document.getElementById('topPagination').innerHTML = pagHtml;
+                    document.getElementById('bottomPagination').innerHTML = pagHtml;
+                }
+            } catch (err) { logOutput('❌ JS Crash: ' + err.toString()); }
+        }
+
+        async function loadSeasonsInline(showRatingKey) {
+            if (document.getElementById('inline-wrapper-' + showRatingKey)) return closeInlineSeasons(showRatingKey, true);
+            if (activeInlineKey && activeInlineKey !== showRatingKey) closeInlineSeasons(activeInlineKey, false);
+
+            pushStateTrap('seasons');
+            activeInlineKey = showRatingKey;
+            const card = document.getElementById('card-' + showRatingKey);
+            
+            const wrapper = document.createElement('div');
+            wrapper.id = 'inline-wrapper-' + showRatingKey;
+            wrapper.className = 'inline-seasons-wrapper';
+            wrapper.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom:20px;"><h3 style="margin:0; border:none; padding:0;">Granular Seasons</h3><div><button class="btn-slate" style="padding: 6px 16px; margin-right: 35px;" onclick="applyPoster('${showRatingKey}', null, null, false, true)">⚡ Auto-Apply Seasons Only</button><button class="close-inline-btn" style="position:absolute; top:20px; right:20px;" onclick="closeInlineSeasons('${showRatingKey}', true)">&times;</button></div></div><div id="inline-grid-${showRatingKey}" class="grid" style="margin-top:0;"><p style="color: var(--text-muted);">Loading...</p></div>`;
+            
+            card.parentNode.insertBefore(wrapper, card.nextSibling);
+            wrapper.style.display = 'block';
+
+            try {
+                const res = await fetch('/api/seasons?ratingKey=' + showRatingKey);
+                const data = await res.json();
+                const inlineGrid = document.getElementById('inline-grid-' + showRatingKey);
+                
+                if (!data.success) { inlineGrid.innerHTML = '❌ Error: ' + data.error; return; }
+                inlineGrid.innerHTML = '';
+                
+                data.seasons.forEach(s => {
+                    const sCard = document.createElement('div');
+                    sCard.className = 'result-card';
+                    const thumbUrl = s.thumb ? s.thumb : 'https://via.placeholder.com/150x225/111111/444444/?text=No+Poster';
+                    const artUrl = s.art ? s.art : 'https://via.placeholder.com/280x157/111111/444444/?text=No+Background';
+                    const activeUrl = currentDashboardMode === 'poster' ? thumbUrl : artUrl;
+                    const imgClass = currentDashboardMode === 'poster' ? 'img-vertical' : 'img-widescreen';
+                    
+                    let posterBtns = `<button class="apply-btn btn-slate" onclick="applyPoster('${showRatingKey}', null, '${s.seasonNumber}', false, false)">Auto Season</button><button class="apply-btn btn-forge" onclick="openModal('${showRatingKey}', '${s.seasonNumber}', 'season')">Edit Art</button><button class="apply-btn btn-steel" onclick="openUploadModal('${showRatingKey}', 'season', '${s.seasonNumber}')">Local Upload</button>`;
+                    let backdropBtns = `<button class="apply-btn btn-slate" onclick="applyPoster('${showRatingKey}', null, '${s.seasonNumber}', false, false)">Auto Background</button><button class="apply-btn btn-forge" onclick="openModal('${showRatingKey}', '${s.seasonNumber}', 'season')">Edit Art</button><button class="apply-btn btn-steel" onclick="openUploadModal('${showRatingKey}', 'season', '${s.seasonNumber}')">Local Upload</button>`;
+
+                    sCard.innerHTML = `<img id="img-${showRatingKey}-${s.seasonNumber}" src="${activeUrl}" loading="lazy" data-thumb="${thumbUrl}" data-art="${artUrl}" class="${imgClass}" alt="Poster"><div class="result-title">${s.title}</div><div class="btn-group-poster">${posterBtns}</div><div class="btn-group-backdrop">${backdropBtns}</div>`;
+                    inlineGrid.appendChild(sCard);
+                });
+            } catch (err) { document.getElementById('inline-grid-' + showRatingKey).innerHTML = '❌ JS Crash: ' + err.toString(); }
+        }
+
+        function closeInlineSeasons(ratingKey, alterHistory) {
+            if (alterHistory) { isHandlingHistory = true; history.back(); setTimeout(() => isHandlingHistory = false, 50); }
+            const wrapper = document.getElementById('inline-wrapper-' + ratingKey);
+            if (wrapper) wrapper.remove();
+            if (activeInlineKey === ratingKey) activeInlineKey = null;
+        }
+
+        function openUploadModal(ratingKey, mediaType, seasonNum = null) {
+            pushStateTrap('upload');
+            uploadTargetKey = ratingKey; uploadMediaType = mediaType; uploadSeasonNum = seasonNum;
+            document.getElementById('customFileInput').value = '';
+            document.getElementById('cropImage').style.display = 'none';
+            if (cropper) { cropper.destroy(); cropper = null; }
+            document.getElementById('uploadSaveDisk').checked = appSettings.SAVE_DISK || false;
+            document.getElementById('uploadModal').style.display = 'flex';
+            switchArtMode(currentArtMode, false); 
+        }
+
+        function closeUploadModal() {
+            document.getElementById('uploadModal').style.display = 'none';
+            if (cropper) { cropper.destroy(); cropper = null; }
+        }
+
+        document.getElementById('customFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = document.getElementById('cropImage');
+                img.src = event.target.result;
+                img.style.display = 'block';
+                if (cropper) cropper.destroy(); 
+                cropper = new Cropper(img, { aspectRatio: currentArtMode === 'poster' ? 2/3 : 16/9, viewMode: 1, autoCropArea: 1, background: false, zoomable: true });
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function refreshImageTags(ratingKey, newPosterUrls, manualDomKey) {
+            const keysToUpdate = manualDomKey ? [manualDomKey] : (newPosterUrls ? Object.keys(newPosterUrls) : ['main']);
+            keysToUpdate.forEach(key => {
+                const imgElement = document.getElementById('img-' + ratingKey + '-' + key);
+                if (imgElement) {
+                    imgElement.style.opacity = '0.3';
+                    setTimeout(() => {
+                        try {
+                            const ts = new Date().getTime();
+                            const plexToken = document.getElementById('plexTokenFallback').value;
+                            
+                            let thumbStr = imgElement.getAttribute('data-thumb');
+                            let artStr = imgElement.getAttribute('data-art');
+                            
+                            if (!thumbStr.includes('via.placeholder')) {
+                                let thumbUrl = new URL(thumbStr);
+                                thumbUrl.searchParams.set('t', ts);
+                                if (!thumbUrl.searchParams.has('X-Plex-Token') && plexToken) {
+                                    thumbUrl.searchParams.set('X-Plex-Token', plexToken);
+                                }
+                                imgElement.setAttribute('data-thumb', thumbUrl.toString());
+                            }
+                            
+                            if (artStr && !artStr.includes('via.placeholder')) {
+                                let artUrl = new URL(artStr);
+                                artUrl.searchParams.set('t', ts);
+                                if (!artUrl.searchParams.has('X-Plex-Token') && plexToken) {
+                                    artUrl.searchParams.set('X-Plex-Token', plexToken);
+                                }
+                                imgElement.setAttribute('data-art', artUrl.toString());
+                            } else if (!thumbStr.includes('via.placeholder')) {
+                                let thumbObj = new URL(thumbStr);
+                                let plexBase = thumbObj.origin;
+                                let tokenMatch = thumbObj.searchParams.get('X-Plex-Token') || plexToken;
+                                let match = thumbStr.match(/\/metadata\/(\d+)\//);
+                                let dbKey = match ? match[1] : ratingKey;
+                                
+                                let newArtUrl = `${plexBase}/library/metadata/${dbKey}/art?t=${ts}`;
+                                if (tokenMatch) newArtUrl += `&X-Plex-Token=${tokenMatch}`;
+                                imgElement.setAttribute('data-art', newArtUrl);
+                            }
+                            
+                            imgElement.src = currentDashboardMode === 'poster' ? imgElement.getAttribute('data-thumb') : imgElement.getAttribute('data-art');
+                        } catch(e) { console.error("DOM Image Update Failed:", e); }
+                        imgElement.style.opacity = '1';
+                    }, 500);
+                }
+            });
+        }
+
+        async function submitCustomUpload() {
+            if (!cropper) return alert("Please select an image first.");
+            const fileInput = document.getElementById('customFileInput');
+            if (!fileInput.files.length) return;
+
+            const cropData = cropper.getData(true); 
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('ratingKey', uploadTargetKey);
+            formData.append('mediaType', uploadMediaType);
+            formData.append('targetField', currentArtMode === 'poster' ? 'thumb' : 'art'); 
+            if (uploadSeasonNum) formData.append('seasonNum', uploadSeasonNum);
+            formData.append('x', cropData.x); formData.append('y', cropData.y);
+            formData.append('width', cropData.width); formData.append('height', cropData.height);
+            formData.append('saveDisk', document.getElementById('uploadSaveDisk').checked);
+
+            logOutput(`\n[Upload] Processing custom ${currentArtMode} for ID ${uploadTargetKey}...`);
+            closeUploadModal();
+
+            try {
+                const res = await fetch('/api/upload_custom', { method: 'POST', body: formData });
+                const data = await res.json();
+                logOutput(data.message, data.success);
+                
+                if (data.success) {
+                    const domKey = uploadSeasonNum ? uploadSeasonNum : 'main';
+                    refreshImageTags(uploadTargetKey, null, domKey);
+                }
+            } catch (e) { logOutput('\n❌ Upload Crash: ' + e.toString()); }
+        }
+
+        async function openModal(ratingKey, targetSeason = null, forcedType = 'movie', updateHistory = true) {
+            try {
+                if (updateHistory) pushStateTrap('modal');
+                currentTargetKey = ratingKey; currentSeasonNum = targetSeason; currentForcedType = forcedType;
+
+                document.getElementById('posterModal').style.display = 'flex';
+                document.getElementById('modalLoading').style.display = 'block';
+                document.getElementById('modalGrid').innerHTML = '';
+                document.getElementById('modalSaveDisk').checked = appSettings.SAVE_DISK || false;
+                
+                switchArtMode(currentArtMode, false); 
+
+                const res = await fetch('/api/preview', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ratingKey: ratingKey, type: forcedType, seasonNum: currentSeasonNum, source: currentModalSource, artMode: currentArtMode })
+                });
+                const data = await res.json();
+                
+                document.getElementById('modalLoading').style.display = 'none';
+                
+                if (!data.success || !data.posters || data.posters.length === 0) {
+                    document.getElementById('modalGrid').innerHTML = `<p style="text-align:center; width:100%; grid-column: 1/-1; color: var(--text-muted);">⚠️ No alternate ${currentArtMode}s found.</p>`;
+                    return;
+                }
+
+                data.posters.forEach(url => {
+                    const div = document.createElement('div');
+                    div.className = 'poster-option';
+                    div.onclick = function() { selectAndApplyPoster(url); };
+                    const imgClass = currentArtMode === 'poster' ? 'img-vertical' : 'img-widescreen';
+                    div.innerHTML = `<img class="${imgClass}" src="${url}" loading="lazy" alt="Artwork Option">`;
+                    document.getElementById('modalGrid').appendChild(div);
+                });
+            } catch (err) { document.getElementById('modalLoading').innerText = '❌ JS Crash: ' + err.toString(); }
+        }
+
+        function closeModal(alterHistory) {
+            if (alterHistory) { isHandlingHistory = true; history.back(); setTimeout(() => isHandlingHistory = false, 50); }
+            document.getElementById('posterModal').style.display = 'none';
+        }
+
+        async function selectAndApplyPoster(manualUrl) {
+            closeModal(true);
+            if (currentTargetKey) applyPoster(currentTargetKey, manualUrl, currentSeasonNum, false, false, document.getElementById('modalSaveDisk').checked);
+        }
+
+        async function applyPoster(ratingKey, manualUrl = null, targetSeason = null, forceAllSeasons = false, seasonsOnly = false, overrideSaveDisk = null) {
+            try {
+                const isCol = document.getElementById('mediaTypeSelect').value;
+                const reqType = isCol === 'true' ? 'collection' : (targetSeason !== null || seasonsOnly) ? 'season' : getBaseType();
+                
+                let targetText = targetSeason !== null ? `Season ${targetSeason}` : seasonsOnly ? `ALL Seasons (Skipping Main)` : forceAllSeasons ? `Main Title + ALL Seasons` : 'Main Title';
+                const modeText = manualUrl ? `Selected ${currentArtMode}` : 'Auto-Artwork';
+                
+                logOutput(`\n[Execute] Processing ${modeText} for ${targetText}...`);
+                
+                const payload = {
+                    ratingKey: ratingKey, type: reqType,
+                    targetArt: currentDashboardMode === 'backdrop' ? 'backdrop' : 'both', 
+                    artMode: currentArtMode, 
+                    allSeasons: forceAllSeasons, seasonsOnly: seasonsOnly, seasonNum: targetSeason,
+                    manualUrl: manualUrl
+                };
+                
+                if (overrideSaveDisk !== null) {
+                    payload.saveDisk = overrideSaveDisk;
+                }
+
+                const res = await fetch('/api/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const data = await res.json();
+                
+                logOutput(data.message, true);
+                
+                if (data.success) {
+                    refreshImageTags(ratingKey, data.newPosterUrls, manualUrl ? (targetSeason || 'main') : null);
+                }
+            } catch (err) { logOutput('\n❌ JS Crash: ' + err.toString()); }
+        }
+    </script>
+    </main>
+</div>
+</body>
+</html>

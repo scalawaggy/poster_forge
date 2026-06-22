@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>About | Poster Forge</title>
+    <link rel="icon" href="/static/thor_logo.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* Specific Poster Forge Layout Overrides */
+        :root {
+            --thumb-size: 160px;
+            --success-green: var(--success);
+            --danger-red: var(--error);
+            --accent-primary: var(--accent);
+            --border-color: var(--border);
+            --text-main: var(--text-primary);
+        }
+        
+        /* Sidebar layout additions */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-w);
+            transition: margin-left var(--transition-slow);
+            padding: 40px;
+            min-height: 100vh;
+        }
+        body.sidebar-collapsed .main-content {
+            margin-left: var(--sidebar-w-collapsed);
+        }
+        body.sidebar-collapsed .sidebar {
+            width: var(--sidebar-w-collapsed);
+        }
+        body.sidebar-collapsed .sidebar-logo-text, 
+        body.sidebar-collapsed .nav-text, 
+        body.sidebar-collapsed .sidebar-nav-label {
+            display: none;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-3);
+            padding: var(--sp-2) var(--sp-3);
+            border-radius: var(--radius);
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: background-color var(--transition), color var(--transition);
+            margin-bottom: 2px;
+        }
+        .nav-item:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+        }
+        .nav-item.active {
+            background-color: var(--accent-dim);
+            color: var(--accent);
+            font-weight: var(--fw-medium);
+        }
+        .nav-icon {
+            font-size: 1.25rem;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .card { background-color: var(--bg-surface); padding: 25px; border-radius: var(--radius-lg); margin-bottom: 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+        h2 { margin-top: 0; color: var(--text-primary); font-weight: 600; letter-spacing: 0.5px; }
+        h3 { color: var(--text-primary); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-top: 25px; }
+        code { background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; font-family: monospace; color: var(--accent); }
+        pre { background: var(--bg-base); padding: 15px; border-radius: var(--radius); overflow-x: auto; border: 1px solid var(--border); }
+        ul { padding-left: 20px; line-height: 1.6; color: var(--text-secondary); }
+        li { margin-bottom: 8px; }
+        strong { color: var(--text-main); }
+        .checkbox-group label { display: flex; align-items: center; margin-bottom: 10px; gap: 10px; }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar" id="sidebar">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px;">
+            <a href="/" style="display: flex; align-items: center; text-decoration: none; gap: 10px;">
+                <img class="sidebar-logo-icon" src="/static/thor_logo.png" style="width: 28px; height: 28px; object-fit: contain;">
+                <div class="sidebar-logo-text" style="color: var(--text-main); font-size: 1.2rem; font-weight: bold;">Poster <span style="color: var(--accent);">Forge</span></div>
+            </a>
+            <button onclick="document.body.classList.toggle('sidebar-collapsed')" style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; padding: 0;">☰</button>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="sidebar-nav-label">Main</div>
+            <a href="/" class="nav-item">
+                <span class="nav-icon">⌂</span>
+                <span class="nav-text">Dashboard</span>
+            </a>
+            <a href="/settings" class="nav-item">
+                <span class="nav-icon">⚙</span>
+                <span class="nav-text">Settings</span>
+            </a>
+            <a href="/about" class="nav-item active">
+                <span class="nav-icon">ℹ</span>
+                <span class="nav-text">About</span>
+            </a>
+            <a href="/logout" class="nav-item">
+                <span class="nav-icon">⎋</span>
+                <span class="nav-text">Sign Out</span>
+            </a>
+        </nav>
+    </aside>
+    <main class="main-content">
+        <div class="container">
+            <div class="card" style="border-left: 4px solid var(--accent);">
+                <h2>About Poster Forge</h2>
+                <p style="color: var(--text-muted); font-size: 0.9em;">Version 3.1.0-build.42 (Sub-Mariner Edition)</p>
+                <p style="color: var(--text-secondary);">
+                    Poster Forge is an automated multi-function media utility that bridges the gap between your *arr instances and Plex. It manages poster acquisition, dynamically generates and paints custom countdown banners for upcoming media, and performs regular maintenance jobs to keep your libraries pristine.
+                </p>
+                
+                <h3>Core Integrations & Requirements</h3>
+                <p style="color: var(--text-secondary);">To fully utilize the Automated Tracking Engine, you must configure your external dependencies properly.</p>
+
+                <h4>1. Plex Configuration</h4>
+                <ul>
+                    <li>You MUST create a Movie Library called <strong>Coming Soon</strong> (ordered by release date).</li>
+                    <li>Then, add items in that library to a <strong>Smart Collection</strong> with criteria such as: <em>Movie released since 1900</em>.</li>
+                    <li>The app will automatically create the <strong>Returning soon</strong> collection for TV shows. However, you must manually change its <strong>collection order to custom</strong> so the app can reorder the items dynamically.</li>
+                    <li>Ensure your Poster Forge Docker container has mounted your exact Plex Media directories as defined in Settings.</li>
+                </ul>
+
+                <h4>2. Radarr & Sonarr (The *arrs)</h4>
+                <ul>
+                    <li>Poster Forge connects directly to their APIs to identify upcoming releases.</li>
+                    <li>In the Poster Forge Settings, input the API Keys for both Radarr and Sonarr.</li>
+                    <li>The system will track movies that have a status of <code>announced</code> or <code>inCinemas</code>, and shows with upcoming episode air dates.</li>
+                </ul>
+
+                <h4>3. Tautulli (Real-Time Triggers)</h4>
+                <ul>
+                    <li>Tautulli is used to catch when a movie or show is finally downloaded and added to Plex.</li>
+                    <li>When triggered, Poster Forge's <strong>Maintenance Job</strong> acts as an assassin, purging the temporary trailer and removing the "Coming Soon" banners.</li>
+                    <li><strong>Webhook Setup:</strong>
+                        <ol>
+                            <li>In Tautulli, go to <strong>Settings > Notification Agents > Add a Webhook</strong>.</li>
+                            <li><strong>Webhook URL:</strong> <code>http://[POSTER_FORGE_IP]:8000/api/webhook/tautulli?token=YOUR_SECURE_TOKEN</code></li>
+                            <li><strong>Triggers:</strong> Select <code>Recently Added</code>.</li>
+                            <li><strong>Data (JSON):</strong>
+<pre><code>{
+    "action": "added",
+    "ratingKey": "{rating_key}",
+    "mediaType": "{media_type}",
+    "title": "{title}"
+}</code></pre>
+                            </li>
+                        </ol>
+                    </li>
+                </ul>
+
+                <h3>Security Note</h3>
+                <p style="color: var(--text-secondary);">
+                    Ensure you configure a <strong>Webhook Security Token</strong> in the Settings panel. Leaving it blank exposes your webhook endpoints to unauthorized access. Poster Forge utilizes safe path translations, but running the container behind a reverse proxy (like Nginx or Traefik) without basic auth is not recommended for external facing networks.
+                </p>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

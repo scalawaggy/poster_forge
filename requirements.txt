@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+plexapi
+requests
+Pillow==10.1.0
+python-multipart==0.0.6
+jinja2
+yt-dlp
+colorlog==6.8.2
+num2words==0.5.14
+kometautils==0.3.4
+retrying==1.4.2
+tqdm==4.67.1

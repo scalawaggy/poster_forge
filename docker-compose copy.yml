@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  poster_forge:
+    build: .
+    container_name: poster_forge
+    ports:
+      - "8000:8000"
+    volumes:
+      # Data persistence (Settings, config, internal caches)
+      - ./forge_data:/app/data
+      
+      # Optional: Persistent Logs
+      - ./forge_logs:/app/logs
+      
+      # Map your Media, Plex Metadata, or Cache if you plan to use those features
+      - /Path/To/media:/media
+      - "/Path/To/Plex/Plex Media Server:/plex:rw"
+      - "/Path/To/PhotoTranscoder?:/plex/Cache:rw"
+    deploy:
+      resources:
+        limits:
+          memory: 1G             
+    environment:
+      - TZ=America/Chicago
+    restart: unless-stopped
