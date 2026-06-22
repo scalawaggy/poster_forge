@@ -8,9 +8,9 @@ This project was coded in concert with AI—which I know can be a polarizing top
 
 | Automated Tracking Engine | Poster Customization |
 | :---: | :---: |
-| ![Poster Forge Dashboard](Screenshots/poster_forge_dashboard.png) | ![Poster Forge Artwork](Screenshots/poster_forge_artwork.png) |
+| ![Poster Forge Dashboard](screenshots/poster_forge_dashboard.png) | ![Poster Forge Artwork](screenshots/poster_forge_artwork.png) |
 | **Plex Library Search** | **Plex Home Integration** |
-| ![Poster Forge Search](Screenshots/poster_forge_search.png) | ![Plex Integration](Screenshots/plex_integration.png) |
+| ![Poster Forge Search](screenshots/poster_forge_search.png) | ![Plex Integration](screenshots/plex_integration.png) |
 
 ## Features
 
