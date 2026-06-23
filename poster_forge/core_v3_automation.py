@@ -207,7 +207,7 @@ def update_v3_banners():
                 except: collection = None
                 
                 if collection:
-                    sort_candidates.sort(key=lambda x: (x[1] if x[1] > 0 else 999998, x[0].title))
+                    sort_candidates.sort(key=lambda x: (x[1], x[0].title))
                     previous_item = None
                     position = 1
                     for item, _ in sort_candidates:
